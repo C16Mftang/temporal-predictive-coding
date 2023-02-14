@@ -1,0 +1,5 @@
+*.egg-info
+*.sh
+data
+results
+output
