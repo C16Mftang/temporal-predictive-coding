@@ -269,9 +269,13 @@ class TemporalPC(nn.Module):
         err_z, err_x = self.update_errs(x, u, prev_z, self.z)
         self.hidden_loss = torch.sum(err_z**2)
         self.obs_loss = torch.sum(err_x**2)
-        self.Win.weight.grad = -torch.matmul(err_z.t(), self.nonlin(u))
-        self.Wr.weight.grad = -torch.matmul(err_z.t(), self.nonlin(prev_z))
-        self.Wout.weight.grad = -torch.matmul(err_x.t(), self.nonlin(self.z))
+        # self.Win.weight.grad = -torch.matmul(err_z.t(), self.nonlin(u))
+        # self.Wr.weight.grad = -torch.matmul(err_z.t(), self.nonlin(prev_z))
+        # self.Wout.weight.grad = -torch.matmul(err_x.t(), self.nonlin(self.z))
 
+        loss = self.hidden_loss + self.obs_loss
+        self.Win.weight.grad = torch.autograd.grad(loss, self.Win.weight, allow_unused=True, retain_graph=True)[0]
+        self.Wr.weight.grad = torch.autograd.grad(loss, self.Wr.weight, allow_unused=True, retain_graph=True)[0]
+        self.Wout.weight.grad = torch.autograd.grad(loss, self.Wout.weight, allow_unused=True, retain_graph=True)[0]
                 
 
