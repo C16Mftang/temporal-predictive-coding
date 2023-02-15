@@ -255,7 +255,7 @@ class TemporalPC(nn.Module):
             # update the current hidden state
             for i in range(inf_iters):
                 err_z, err_x = self.update_errs(x, u, prev_z, self.z)
-                delta_z = err_z - self.nonlin.deriv(self.z) * torch.matmul(err_x, self.Wout.weight.clone()) + sparse_penal * torch.sign(self.z)
+                delta_z = err_z - self.nonlin.deriv(self.z) * torch.matmul(err_x, self.Wout.weight.detach().clone()) + sparse_penal * torch.sign(self.z)
                 self.z -= inf_lr * delta_z
                 if update_x:
                     delta_x = err_x
@@ -272,10 +272,8 @@ class TemporalPC(nn.Module):
         # self.Win.weight.grad = -torch.matmul(err_z.t(), self.nonlin(u))
         # self.Wr.weight.grad = -torch.matmul(err_z.t(), self.nonlin(prev_z))
         # self.Wout.weight.grad = -torch.matmul(err_x.t(), self.nonlin(self.z))
-
         loss = self.hidden_loss + self.obs_loss
-        self.Win.weight.grad = torch.autograd.grad(loss, self.Win.weight, allow_unused=True, retain_graph=True)[0]
-        self.Wr.weight.grad = torch.autograd.grad(loss, self.Wr.weight, allow_unused=True, retain_graph=True)[0]
-        self.Wout.weight.grad = torch.autograd.grad(loss, self.Wout.weight, allow_unused=True, retain_graph=True)[0]
+        loss.backward()
+
                 
 
