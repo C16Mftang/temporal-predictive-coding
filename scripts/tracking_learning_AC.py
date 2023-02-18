@@ -18,7 +18,7 @@ if not os.path.exists(result_path):
 # hyper parameters
 seq_len = 1000
 inf_iters = 20
-inf_lr = 0.05
+inf_lr = 0.2
 learn_iters = 1
 learn_lr = 2e-5
 seeds = range(10)
