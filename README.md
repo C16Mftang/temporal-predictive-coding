@@ -21,10 +21,13 @@ For Ubuntu or Mac OS, open a terminal, go to the repository directory; for Windo
 Once the above are done, you can reproduce figures from the paper:
 
 For Figure 3 enter:
-`python scripts/tracking_inf_steps.py` (panel A, B, C)
+
+`python scripts/tracking_inf_steps.py` (panel A, B, C) and
+
 `python scripts/tracking_inf_multi_seeds.py` (panel D)
 
 For Figure 4 enter:
+
 `python scripts/tracking_learning_AC.py`
 
 Once you run these commands, a directory named `results` will the be created to store all the data and figures collected from the experiments.
