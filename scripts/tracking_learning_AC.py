@@ -18,10 +18,10 @@ if not os.path.exists(result_path):
 # hyper parameters
 seq_len = 1000
 inf_iters = 20
-inf_lr = 0.2
+inf_lr = 0.05
 learn_iters = 1
 learn_lr = 2e-5
-seeds = range(10)
+seeds = range(40)
 
 latent_mses = np.zeros((4, len(seeds)))
 obs_mses = np.zeros((4, len(seeds)))
@@ -151,23 +151,22 @@ plt.savefig(result_path + f'/learning_AC_{inf_iters}.pdf')
 # visualize the errors on the latent level
 fig, ax = plt.subplots(1, 2, figsize=(8, 3), sharey=True)
 xticks = ['Kalman Filter', 'True', 'Learnt', 'Random']
-latent_mses = np.log10(latent_mses)
+print(latent_mses.shape)
 mse_mean = np.mean(latent_mses, axis=1)
 mse_std = np.std(latent_mses, axis=1)
-bar_ticks = np.arange(4)
-ax[0].bar(bar_ticks, mse_mean)
-ax[0].errorbar(bar_ticks, mse_mean, yerr=mse_std, c='k', ls='none')
+bar_ticks = np.arange(1, 5)
+ax[0].boxplot(latent_mses.T, patch_artist=True, boxprops=dict(facecolor='red'), medianprops=dict(color='k'))
 ax[0].set_xticks(bar_ticks, xticks)
-ax[0].set_ylabel('Log MSE')
+ax[0].set_yscale('log')
+ax[0].set_ylabel('MSE')
 ax[0].set_title('State MSE (log-scaled)', fontsize=12)
 
 # visualize errors on the observation level
-obs_mses = np.log10(obs_mses)
 obs_mse_mean = np.mean(obs_mses, axis=1)
 obs_mse_std = np.std(obs_mses, axis=1)
-ax[1].bar(bar_ticks, obs_mse_mean)
-ax[1].errorbar(bar_ticks, obs_mse_mean, yerr=obs_mse_std, c='k', ls='none')
+ax[1].boxplot(obs_mses.T, patch_artist=True, boxprops=dict(facecolor='red'), medianprops=dict(color='k'))
 ax[1].set_xticks(bar_ticks, xticks)
+ax[1].set_yscale('log')
 ax[1].set_title('Observation MSE (log-scaled)', fontsize=12)
 plt.tight_layout()
 plt.savefig(result_path + f'/mse_comparison_learningAC.pdf')
