@@ -1,0 +1,16 @@
+name: temporalenv
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.8
+  - numpy
+  - pytorch
+  - torchvision
+  - cudatoolkit=11.3
+  - matplotlib
+  - tqdm
+  - git
+  - seaborn
+  - scipy
+  - brewer2mpl
