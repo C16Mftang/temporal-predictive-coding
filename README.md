@@ -13,7 +13,7 @@ and then clone this repository to your local machine.
 Once these are installed and cloned, you can use the appropriate `.yml` file to create a conda environment. 
 For Ubuntu or Mac OS, open a terminal (for Windows, open the Anaconda Prompt), go to the directory where you cloned the repo and then enter:
 
-1. `cd temporal-pc`
+1. `cd temporal-predictive-coding`
 2. `conda env create -f environment.yml`  
 3. `conda activate temporalenv`
 4. `pip install -e .`  
