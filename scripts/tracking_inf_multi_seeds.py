@@ -74,7 +74,7 @@ for i_seed, seed in enumerate(seeds):
 
     # KF
     kf = KalmanFilter(A, B, C, Q, R, latent_size=3)
-    zs_kf = kf.inference(xs, us)
+    zs_kf, _ = kf.inference(xs, us)
     # compute error
     zs_kf = to_np(zs_kf)
     mse = np.mean((zs - zs_kf)**2)
@@ -87,7 +87,7 @@ for i_seed, seed in enumerate(seeds):
             
             # estimating using NKF, 5 gradient steps
             nkf = NeuralKalmanFilter(A, B, C, latent_size=3, dynamic_inf=False)
-            zs_nkf = nkf.train(xs, us, inf_iters=inf_iters, inf_lr=inf_lr)
+            zs_nkf, _ = nkf.predict(xs, us, inf_iters=inf_iters, inf_lr=inf_lr)
             # compute error
             zs_nkf = to_np(zs_nkf)
             mse = np.mean((zs - zs_nkf)**2)

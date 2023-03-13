@@ -64,17 +64,17 @@ xs = torch.cat(xs, dim=1)
 
 # estimating using NKF, 5 gradient steps
 nkf = NeuralKalmanFilter(A, B, C, latent_size=3, dynamic_inf=False)
-zs_nkf = nkf.train(xs, us, inf_iters=5, inf_lr=inf_lr)
+zs_nkf, _ = nkf.predict(xs, us, inf_iters=5, inf_lr=inf_lr)
 print(zs_nkf.shape)
 
 # estimating using NKF, 1 gradient steps
 nkf1 = NeuralKalmanFilter(A, B, C, latent_size=3, dynamic_inf=False)
-zs_nkf1 = nkf1.train(xs, us, inf_iters=1, inf_lr=inf_lr)
+zs_nkf1, _ = nkf1.predict(xs, us, inf_iters=1, inf_lr=inf_lr)
 print(zs_nkf1.shape)
 
 # estimating using NKF, using PC equilibrium
 nkf0 = NeuralKalmanFilter(A, B, C, latent_size=3, dynamic_inf=False)
-zs_nkf0 = nkf0.train(xs, us, inf_iters=0, inf_lr=inf_lr)
+zs_nkf0, _ = nkf0.predict(xs, us, inf_iters=0, inf_lr=inf_lr)
 print(zs_nkf1.shape)
 
 # estimating using NKF with dynamic inference
@@ -84,7 +84,7 @@ print(zs_nkf1.shape)
 
 # estimating using KF
 kf = KalmanFilter(A, B, C, Q, R, latent_size=3)
-zs_kf = kf.inference(xs, us)
+zs_kf, _ = kf.inference(xs, us)
 print(zs_kf.shape)
 
 # compare inference iters:
