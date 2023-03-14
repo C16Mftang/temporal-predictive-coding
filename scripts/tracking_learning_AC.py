@@ -1,4 +1,5 @@
 import os
+import time
 import torch
 import torch.nn as nn
 import numpy as np
@@ -19,12 +20,13 @@ if not os.path.exists(result_path):
 seq_len = 1000
 inf_iters = 20
 inf_lr = 0.05
-learn_iters = 1
+learn_iters = 20
 learn_lr = 2e-5
 seeds = range(40)
 
 latent_mses = np.zeros((4, len(seeds)))
 obs_mses = np.zeros((4, len(seeds)))
+start_time = time.time()
 for ind, seed in enumerate(seeds):
     print(f'seed: {seed} for noise')
     # create the dataset of the tracking problem
@@ -75,78 +77,71 @@ for ind, seed in enumerate(seeds):
     # generate random A and C for initial weights
     g_A = torch.Generator()
     g_A.manual_seed(1) 
-    init_A = torch.randn((3, 3), generator=g_A)
+    init_A = torch.randn((3, 3), generator=g_A).to(device)
 
     g_C = torch.Generator()
     g_C.manual_seed(2) # dont' use seed=10 here! It will generate the real C
-    init_C = torch.randn((3, 3), generator=g_C)
+    init_C = torch.randn((3, 3), generator=g_C).to(device)
 
     # true A C
-    nkf = NeuralKalmanFilter(A, B, C, latent_size=3, learn_transition=False, learn_emission=False)
-    zs_nkf = nkf.train(xs, us, inf_iters, inf_lr, learn_iters, learn_lr)
-    xs_nkf = to_np(nkf.pred_xs)
-    print(xs_nkf.shape)
-
+    print('True A C')
+    nkf = NeuralKalmanFilter(A, B, C, latent_size=3).to(device)
+    zs_nkf, xs_nkf = nkf.predict(xs, us, inf_iters, inf_lr)
+    
     # learn A C
-    AC_nkf = NeuralKalmanFilter(init_A, B, init_C, latent_size=3, learn_transition=True, learn_emission=True)
-    zs_AC_nkf = AC_nkf.train(xs, us, inf_iters, inf_lr, learn_iters, learn_lr)
-    xs_AC_nkf = to_np(AC_nkf.pred_xs)
-    print(xs_AC_nkf.shape)
+    print('Learnt A C')
+    AC_nkf = NeuralKalmanFilter(init_A, B, init_C, latent_size=3).to(device)
+    AC_nkf.train(xs, us, inf_iters, inf_lr, learn_iters, learn_lr)
+    zs_AC_nkf, xs_AC_nkf = AC_nkf.predict(xs, us, inf_iters, inf_lr)
 
     # random A C
-    rAC_nkf = NeuralKalmanFilter(init_A, B, init_C, latent_size=3, learn_transition=False, learn_emission=False)
-    zs_rAC_nkf = rAC_nkf.train(xs, us, inf_iters, inf_lr, learn_iters, learn_lr)
-    xs_rAC_nkf = to_np(rAC_nkf.pred_xs)
-    print(xs_rAC_nkf.shape)
+    print('Random A C')
+    rAC_nkf = NeuralKalmanFilter(init_A, B, init_C, latent_size=3).to(device)
+    zs_rAC_nkf, xs_rAC_nkf = rAC_nkf.predict(xs, us, inf_iters, inf_lr)
 
     # estimating using KF
-    kf = KalmanFilter(A, B, C, Q, R, latent_size=3)
-    zs_kf = kf.inference(xs, us)
-    xs_kf = to_np(kf.pred_xs)
-    print(xs_kf.shape)
+    print('Kalman filter')
+    kf = KalmanFilter(A, B, C, Q, R, latent_size=3).to(device)
+    zs_kf, xs_kf = kf.inference(xs, us)
 
     # error on the observation level, emitted by C
-    obs_mses[0, ind] = np.mean(to_np(kf.exs)**2)
-    obs_mses[1, ind] = np.mean(to_np(nkf.exs)**2)
-    obs_mses[2, ind] = np.mean(to_np(AC_nkf.exs)**2)
-    obs_mses[3, ind] = np.mean(to_np(rAC_nkf.exs)**2)
+    obs_mses[0, ind] = np.mean(to_np((xs - xs_kf)**2))
+    obs_mses[1, ind] = np.mean(to_np((xs - xs_nkf)**2))
+    obs_mses[2, ind] = np.mean(to_np((xs - xs_AC_nkf)**2))
+    obs_mses[3, ind] = np.mean(to_np((xs - xs_rAC_nkf)**2))
 
     # error of the latent infered state
-    zs = to_np(zs)
-    zs_kf = to_np(zs_kf)
-    zs_nkf = to_np(zs_nkf)
-    zs_AC_nkf = to_np(zs_AC_nkf)
-    zs_rAC_nkf = to_np(zs_rAC_nkf)
+    latent_mses[0, ind] = np.mean(to_np((zs - zs_kf)**2))
+    latent_mses[1, ind] = np.mean(to_np((zs - zs_nkf)**2))
+    latent_mses[2, ind] = np.mean(to_np((zs - zs_AC_nkf)**2))
+    latent_mses[3, ind] = np.mean(to_np((zs - zs_rAC_nkf)**2))
 
-    latent_mses[0, ind] = np.mean((zs - zs_kf)**2)
-    latent_mses[1, ind] = np.mean((zs - zs_nkf)**2)
-    latent_mses[2, ind] = np.mean((zs - zs_AC_nkf)**2)
-    latent_mses[3, ind] = np.mean((zs - zs_rAC_nkf)**2)
+print(f'Code finishes, total time: {time.time() - start_time} seconds')
 
 # visualize latent dynamics
 fig, ax = plt.subplots(1, 2, figsize=(8, 3))
 lw = 0.8
 # latent
-ax[0].plot(zs_kf[0], label='Kalman Filter', lw=2.5*lw)
-ax[0].plot(zs_nkf[0], label='True', lw=1.2*lw)
-ax[0].plot(zs_AC_nkf[0], label='Learnt', lw=lw, c='#BDE038')
-ax[0].plot(zs_rAC_nkf[0], label='Random', lw=lw, c='#708A83')
-ax[0].plot(zs[0], label='True Value', c='k', ls='--', lw=lw)
+ax[0].plot(to_np(zs_kf[0]), label='Kalman Filter', lw=2.5*lw)
+ax[0].plot(to_np(zs_nkf[0]), label='True', lw=1.2*lw)
+ax[0].plot(to_np(zs_AC_nkf[0]), label='Learnt', lw=lw, c='#BDE038')
+ax[0].plot(to_np(zs_rAC_nkf[0]), label='Random', lw=lw, c='#708A83')
+ax[0].plot(to_np(zs[0]), label='True Value', c='k', ls='--', lw=lw)
 ax[0].set_title('State', fontsize=12)
 ax[0].legend(prop={'size': 7})
 ax[0].set_xlabel('Time')
 ax[0].set_ylabel(r'$x_1$')
 # observed
-ax[1].plot(xs_kf[0], label='Kalman Filter', lw=2.5*lw)
-ax[1].plot(xs_nkf[0], label='True', lw=1.2*lw)
-ax[1].plot(xs_AC_nkf[0], label='Learnt', lw=lw, c='#BDE038')
-ax[1].plot(xs_rAC_nkf[0], label='Random', lw=lw, c='#708A83')
-ax[1].plot(xs[0], label='True Value', c='k', ls='--', lw=lw)
+ax[1].plot(to_np(xs_kf[0]), label='Kalman Filter', lw=2.5*lw)
+ax[1].plot(to_np(xs_nkf[0]), label='True', lw=1.2*lw)
+ax[1].plot(to_np(xs_AC_nkf[0]), label='Learnt', lw=lw, c='#BDE038')
+ax[1].plot(to_np(xs_rAC_nkf[0]), label='Random', lw=lw, c='#708A83')
+ax[1].plot(to_np(xs[0]), label='True Value', c='k', ls='--', lw=lw)
 ax[1].set_title('Observed', fontsize=12)
 ax[1].set_xlabel('Time')
 ax[1].set_ylabel(r'$y_1$')
 plt.tight_layout()
-plt.savefig(result_path + f'/learning_AC_{inf_iters}.pdf')
+plt.savefig(result_path + f'/learning_AC_inf{inf_iters}_learn{learn_iters}.pdf')
 
 # visualize the errors on the latent level
 fig, ax = plt.subplots(1, 2, figsize=(8, 3), sharey=True)
@@ -169,4 +164,4 @@ ax[1].set_xticks(bar_ticks, xticks)
 ax[1].set_yscale('log')
 ax[1].set_title('Observation MSE (log-scaled)', fontsize=12)
 plt.tight_layout()
-plt.savefig(result_path + f'/mse_comparison_learningAC.pdf')
+plt.savefig(result_path + f'/mse_comparison_learningAC_inf{inf_iters}_learn{learn_iters}.pdf')
