@@ -50,7 +50,7 @@ class KalmanFilter(nn.Module):
             z_proj, P_proj = self.projection()
             self.correction(z_proj, P_proj)
             zs.append(self.z.detach().clone())
-            pred_x = torch.matmul(self.C, self.z)
+            pred_x = torch.matmul(self.C, z_proj)
             pred_xs.append(pred_x)
             exs.append(self.x - pred_x)
         # collect predictions on the observaiton level
@@ -118,6 +118,7 @@ class NeuralKalmanFilter(nn.Module):
         """
 
         zs = [] # inferred latent states
+        z_projs = [] # projected latent states
         seq_len = inputs.shape[1]
 
         # initialize the latent states with 0
@@ -126,6 +127,7 @@ class NeuralKalmanFilter(nn.Module):
             self.x = inputs[:, l:l+1]
             self.u = controls[:, l:l+1]
             self.prev_z = self.z.clone()
+            z_projs.append(torch.matmul(self.Wr, self.nonlin(self.z)) + torch.matmul(self.Win, self.nonlin(self.u)))
 
             # perform inference
             if inf_iters == 0: 
@@ -141,8 +143,9 @@ class NeuralKalmanFilter(nn.Module):
             zs.append(self.z.detach().clone())
 
         zs = torch.cat(zs, dim=1)
+        z_projs = torch.cat(z_projs, dim=1)
         # make prediction of the observations by a forward pass
-        pred_xs = torch.matmul(self.Wout, self.nonlin(zs))
+        pred_xs = torch.matmul(self.Wout, self.nonlin(z_projs))
         return zs, pred_xs
 
     def train(self, inputs, controls, inf_iters, inf_lr, learn_iters=1, learn_lr=2e-4):

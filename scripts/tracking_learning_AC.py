@@ -20,9 +20,9 @@ if not os.path.exists(result_path):
 seq_len = 1000
 inf_iters = 20
 inf_lr = 0.05
-learn_iters = 20
+learn_iters = 80
 learn_lr = 2e-5
-seeds = range(40)
+seeds = range(20)
 
 latent_mses = np.zeros((4, len(seeds)))
 obs_mses = np.zeros((4, len(seeds)))
