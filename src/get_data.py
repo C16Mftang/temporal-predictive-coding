@@ -1,11 +1,57 @@
 import torch
 from torchvision import datasets, transforms
 from torchvision.transforms import transforms
+import torchvision.transforms.functional as TF
 from torch.distributions.multivariate_normal import MultivariateNormal
 import torch.nn.functional as F
+from torch.utils.data import Dataset, DataLoader
 import random
 import numpy as np
 import math
+
+class DataWrapper(Dataset):
+    """
+    Class to wrap a dataset. Assumes X and y are already
+    torch tensors and have the right data type and shape.
+    
+    Parameters
+    ----------
+    X : torch.Tensor
+        Features tensor.
+    y : torch.Tensor
+        Labels tensor.
+    """
+    def __init__(self, X):
+        self.features = X
+        
+    def __len__(self):
+        return len(self.features)
+    
+    def __getitem__(self, idx):
+        return self.features[idx], []
+    
+
+def get_seq_mnist(datapath, seq_len, sample_size, batch_size, seed, device):
+    """Get batches of sequence mnist
+    
+    The data should be of shape [sample_size, seq_len, h, w]
+    """
+    
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+    ])
+    train = datasets.MNIST(datapath, train=True, transform=transform, download=True)
+    # test = datasets.MNIST(datapath, train=False, transform=transform, download=True)
+
+    # each sample is a sequence of randomly sampled mnist digits
+    # we could thus sample samplesize x seq_len images
+    random.seed(seed)
+    train = torch.utils.data.Subset(train, random.sample(range(len(train)), sample_size * seq_len))
+
+    train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size * seq_len, shuffle=False)
+
+    return train_loader
+
 
 def get_mnist(datapath, sample_size, sample_size_test, batch_size, seed, device, binary=False, classes=None):
     # classes: a list of specific class to sample from
@@ -52,7 +98,15 @@ def get_mnist(datapath, sample_size, sample_size_test, batch_size, seed, device,
     return (X, y), (X_test, y_test)
 
 
-def get_rotating_mnist(datapath, seq_len, seed, device, angle=np.pi/5, digit=0, test_digit=1):
+def get_rotating_mnist(datapath, 
+                       seq_len, 
+                       sample_size, 
+                       test_size, 
+                       batch_size, 
+                       seed, 
+                       device, 
+                       angle=10, 
+                       test_digit=9):
     """digit: digit used to train the model
     
     test_digit: digit used to test the generalization of the model
@@ -64,32 +118,25 @@ def get_rotating_mnist(datapath, seq_len, seed, device, angle=np.pi/5, digit=0, 
     ])
     train = datasets.MNIST(datapath, train=True, transform=transform, download=True)
 
+    # randomly sample 
     dtype =  torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
     # get data from particular classes
-    idx = (train.targets == digit).bool()
+    idx = (train.targets != test_digit).bool()
     test_idx = (train.targets == test_digit).bool()
     train_data = train.data[idx] / 255.
     test_data = train.data[test_idx] / 255.
 
-    # sample 1 image from train and test
     random.seed(seed)
-    rdn_idx_train = random.randint(0, train_data.shape[0])
-    rdn_idx_test = random.randint(0, test_data.shape[0])
-    train_data = train_data[rdn_idx_train:rdn_idx_train+1].unsqueeze(1).to(device)
-    test_data = test_data[rdn_idx_test:rdn_idx_test+1].unsqueeze(1).to(device)
-
+    train_data = train_data[random.sample(range(len(train_data)), sample_size)] # [sample_size, h, w]
+    test_data = test_data[random.sample(range(len(test_data)), test_size)]
+    h, w = train_data.shape[-2], train_data.shape[-1]
     # rotate images
-    train_sequence = []
-    test_sequence = []
+    train_sequences = torch.zeros((sample_size, seq_len, h, w))
 
     for l in range(seq_len):
-        theta = torch.tensor(angle * l)
-        rot_mat = torch.tensor([[torch.cos(theta), -torch.sin(theta), 0],
-                                [torch.sin(theta), torch.cos(theta), 0]])
-        rot_mat = rot_mat[None, ...].repeat(train_data.shape[0], 1, 1).type(dtype)
-        grid = F.affine_grid(rot_mat, train_data.size(), align_corners=False).type(dtype)
-        train_sequence.append(F.grid_sample(train_data.type(dtype), grid, align_corners=False))
-        test_sequence.append(F.grid_sample(test_data.type(dtype), grid, align_corners=False))
+        train_sequences[:, l] = TF.rotate(train_data, angle * l)
+
+    train_loader = DataLoader(DataWrapper(train_sequences), batch_size=batch_size)
     
-    return torch.cat(train_sequence, dim=0), torch.cat(test_sequence, dim=0)
+    return train_loader, test_data
 
