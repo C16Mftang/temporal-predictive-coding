@@ -195,12 +195,12 @@ class TemporalPC(nn.Module):
         pred_x = self.Wout(self.nonlin(pred_z))
         return pred_z, pred_x
 
-    def init_hidden(self):
+    def init_hidden(self, bsz):
         """Initializing prev_z"""
-        return nn.init.kaiming_uniform_(torch.empty(1, self.hidden_size))
+        return nn.init.kaiming_uniform_(torch.empty(bsz, self.hidden_size))
 
     def update_errs(self, x, u, prev_z):
-        pred_z, pred_x = self.forward(u, prev_z)
+        pred_z, _ = self.forward(u, prev_z)
         pred_x = self.Wout(self.nonlin(self.z))
         err_z = self.z - pred_z
         err_x = x - pred_x
