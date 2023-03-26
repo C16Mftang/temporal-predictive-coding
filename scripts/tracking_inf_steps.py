@@ -64,7 +64,7 @@ xs = torch.cat(xs, dim=1)
 
 # estimating using NKF, 5 gradient steps
 nkf = NeuralKalmanFilter(A, B, C, latent_size=3, dynamic_inf=False)
-zs_nkf, _ = nkf.predict(xs, us, inf_iters=5, inf_lr=inf_lr)
+zs_nkf, _ = nkf.predict(xs, us, inf_iters=10, inf_lr=inf_lr)
 print(zs_nkf.shape)
 
 # estimating using NKF, 1 gradient steps
@@ -117,22 +117,23 @@ lw = 1
 # ax[1].set_xticks(np.arange(0, 120, 20), np.arange(500, 620, 20))
 # ax[1].set_title('Velocity')
 
-plt.figure(figsize=(4, 3))
-plt.plot(zs[2, 560:600], c='k', label='True')
-plt.plot(zs_kf[2, 560:600], label='Kalman Filter')
-plt.plot(zs_nkf1[2, 560:600], c='#13678A', label='Single Step')
-plt.plot(zs_nkf[2, 560:600], c='#45C4B0', label='5 Steps')
-plt.plot(zs_nkf0[2, 560:600], c='#9AEBA3', label='PC Equilibrium', ls=':')
+plt.figure(figsize=(6, 2))
+plt.plot(zs[2, 570:591], c='k', label='True')
+plt.plot(zs_kf[2, 570:591], label='Kalman Filter')
+plt.plot(zs_nkf1[2, 570:591], c='#13678A', label='tPC (1 step)')
+plt.plot(zs_nkf[2, 570:591], c='#45C4B0', label='tPC (10 Steps)')
+# plt.plot(zs_nkf0[2, 560:600], c='#9AEBA3', label='PC Equilibrium', ls=':')
 
-plt.xticks(np.arange(0, 60, 20), np.arange(560, 620, 20))
-plt.title('Estimated Acceleration', fontsize=12)
-plt.xlabel('Time')
-plt.ylabel('Value')
-plt.legend(prop={'size': 7})
+plt.xticks(np.arange(0, 30, 10), np.arange(570, 600, 10), color='k')
+plt.yticks([98, 100], color='k')
+plt.title('Estimated Acceleration')
+plt.xlabel('Time', color='k')
+plt.ylabel('Value', color='k')
+plt.legend(prop={'size': 9}, ncol=2)
 # fig.supxlabel('Timestep')
 # fig.supylabel('Value')
 plt.tight_layout()
-plt.savefig(result_path + '/gradient_steps_acc.pdf')
+plt.savefig(result_path + '/gradient_steps_acc_ccn.pdf')
 
 # compare online inference:
 if False:
