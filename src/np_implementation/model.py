@@ -44,9 +44,14 @@ class TPC:
     def get_predictions(self) -> np.ndarray:
         return self.predicted_data
 
-    def forward(self):
+    def forward(self, C_decay: int = None, A_decay: int = None):
         x = np.zeros(self.input.shape[0])
-        counter = 1
+
+        if C_decay:
+            C_decay_counter = 1
+        if A_decay:
+            A_decay_counter = 1
+
         for t in tqdm(range(self.input_size)):
             ox = x.copy()
             x = x + self.dt * self.A @ self.f(ox)
@@ -56,9 +61,17 @@ class TPC:
             e_x = self.C.T @ self.df(x) * e_y
             self.C += self.dt * (self.k1 * e_y[..., np.newaxis] @ self.f(x)[..., np.newaxis].T)
             self.A += self.dt * (self.k2 * e_x[..., np.newaxis] @ self.f(ox)[..., np.newaxis].T)
-            if counter == self.input_size / 8:
-                self.k2 /= 1.015
-                counter = 1
+            if A_decay:
+                if A_decay_counter == A_decay:
+                    self.k2 /= 1.015
+                    C_decay_counter = 1
+            if C_decay:
+                if C_decay_counter == C_decay:
+                    self.k1 /= 1.015
+                    C_decay_counter = 1
             self.error[:, t] = (np.linalg.norm(
                 self.input[:, t] - self.predicted_data[:, t]) ** 2) / len(self.input[:, t])
-            counter += 1
+            if A_decay:
+                A_decay_counter += 1
+            if C_decay:
+                C_decay_counter += 1
