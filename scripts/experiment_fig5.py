@@ -1,3 +1,7 @@
+"""
+Script to produce the plots in Figure 5 in the paper.
+"""
+
 from pathlib import Path
 
 import matplotlib.pyplot as plt
