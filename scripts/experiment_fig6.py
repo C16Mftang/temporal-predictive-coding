@@ -107,7 +107,7 @@ if __name__ == '__main__':
     labels = ["Linear", "Nonlinear"]
     plt.figure(figsize=(6, 6))
     barlist = plt.bar(labels, [l_error_mean, nl_error_mean], 0.5,
-                      yerr=[l_error_sd, nl_error_sd],
+                      yerr=[l_error_se, nl_error_se],
                       error_kw=dict(lw=5, capsize=5, capthick=3))
     barlist[0].set_color('#13678A')
     plt.xticks(color='k')
@@ -131,9 +131,9 @@ if __name__ == '__main__':
     U, V = pendulum_equation(t_span, [X, Y])
     plt.figure(figsize=(6, 6))
     plt.quiver(X, Y, U, V, color='purple')
-    plt.plot(sol[1, ff:], sol[0, ff:], 'b-', linewidth=3)
-    plt.plot(data_pred_nl[0, ff:], data_pred_nl[1, ff:], 'orange', linewidth=3)
-    plt.plot(data_pred_l[0, ff:], data_pred_l[1, ff:], 'g-', linewidth=3)
+    plt.plot(sol[1, ff:], sol[0, ff:], 'k-', linewidth=3, label='True')
+    plt.plot(data_pred_nl[0, ff:], data_pred_nl[1, ff:], linewidth=3, label='Nonlinear model')
+    plt.plot(data_pred_l[0, ff:], data_pred_l[1, ff:], '#13678A', linewidth=3, label='Linear model')
     plt.tick_params(axis='x', labelsize=18)
     plt.tick_params(axis='y', labelsize=18)
     plt.title('Mean phase portrait')
