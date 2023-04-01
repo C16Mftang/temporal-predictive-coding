@@ -1,3 +1,7 @@
+"""
+Script to produce the plots in Figure 6 in the paper.
+"""
+
 from pathlib import Path
 
 import numpy as np
