@@ -10,6 +10,7 @@ dependencies:
   - cudatoolkit
   - matplotlib
   - tqdm
+  - loguru
   - git
   - seaborn
   - scipy
