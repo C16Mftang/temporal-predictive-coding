@@ -1,13 +1,14 @@
 import os
-import torch
-import torch.nn as nn
+
 import numpy as np
-import torch.nn.functional as F
+
+
 import matplotlib.pyplot as plt
-plt.style.use('ggplot')
+
 from src.models import NeuralKalmanFilter, KalmanFilter
 from src.utils import *
 
+plt.style.use('ggplot')
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(device)
 

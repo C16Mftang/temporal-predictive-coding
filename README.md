@@ -31,4 +31,12 @@ For Figure 4 enter:
 
 `python scripts/tracking_learning_AC.py`
 
-Once you run these commands, a directory named `results` will the be created to store all the data and figures collected from the experiments.
+For Figure 5 enter:
+
+`python scripts/experiment_fig5.py`
+
+For Figure 6 enter:
+
+`python scripts/experiment_fig6.py`
+
+Once you run these commands, a directory named `results` will be created to store all the data and figures collected from the experiments.
