@@ -13,7 +13,7 @@ from src.np_implementation.model import TPC
 
 plt.style.use('ggplot')
 
-results_path = Path('../src/np_implementation/results/', 'pendulum')
+results_path = Path('./results/', 'pendulum')
 results_path.mkdir(parents=True, exist_ok=True)
 
 
