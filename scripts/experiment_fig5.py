@@ -138,8 +138,10 @@ if __name__ == '__main__':
         plt.plot(solution[:, 0].T, c='k', label='True')
         plt.plot(solution[:, 1].T, label='Nonlinear model')
         plt.plot(solution[:, 2].T, c='#13678A', label='Linear model')
-        plt.xlim((5449, 5499))
-        plt.xticks(np.arange(5449, 5509, 10), np.arange(5449, 5509, 10), color='k', fontsize=18)
+        plt.xlim((time_points-51, time_points-1))
+        plt.xticks(np.arange(time_points-51, time_points+9, 10),
+                   np.arange(time_points-51, time_points+9, 10),
+                   color='k', fontsize=18)
         plt.yticks([-2.5, 2.5], color='k', fontsize=18)
         plt.title('True state vs. estimations', fontsize=20)
         plt.xlabel('Time', color='k', fontsize=18)
@@ -172,7 +174,9 @@ if __name__ == '__main__':
 
         plt.xlim((0, len(__moving_average(nl_error_mean, moving))))
         plt.ylim((0))
-        plt.xticks(np.arange(0, 5509, 1000), np.arange(0, 5509, 1000), color='k', fontsize=18)
+        plt.xticks(np.arange(0, time_points+9, 1000),
+                   np.arange(0, time_points+9, 1000),
+                   color='k', fontsize=18)
         plt.yticks(color='k', fontsize=18)
         plt.title('Mean & standard errors of loss', fontsize=18)
         plt.xlabel('Time', color='k', fontsize=18)
@@ -253,7 +257,7 @@ if __name__ == '__main__':
 
         # fitting
         data = solution[:, 0]
-        data = data[5449:5499].T
+        data = data[time_points-51:time_points-1].T
         N = 50  # number of data points
         t = np.linspace(0, 4 * np.pi, N)
         guess_mean = np.mean(data)
