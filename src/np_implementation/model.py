@@ -55,10 +55,10 @@ class TPC:
         for t in tqdm(range(self.input_size)):
             ox = x.copy()
             x = x + self.dt * self.A @ self.f(ox)
-            self.predicted_data[:, t] = self.C @ self.f(ox)
+            self.predicted_data[:, t] = self.C @ self.f(x)
             e_y = self.input[:, t] - self.predicted_data[:, t]
-            x = x + self.dt * (self.C.T @ (self.df(x) * e_y))
             e_x = self.C.T @ self.df(x) * e_y
+            x = x + self.dt * (self.C.T @ (self.df(x) * e_y))
             self.C += self.dt * (self.k1 * e_y[..., np.newaxis] @ self.f(x)[..., np.newaxis].T)
             self.A += self.dt * (self.k2 * e_x[..., np.newaxis] @ self.f(ox)[..., np.newaxis].T)
             if A_decay:

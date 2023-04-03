@@ -26,10 +26,25 @@ def __moving_average(x, w):
     return np.convolve(x, np.ones(w), 'valid') / w
 
 
+def _annotated_heatmap(input_data, std_err, ax=None, **kwargs):
+    if ax is None:
+        _, ax = plt.subplots(figsize=(6, 6))
+
+    sns.heatmap(input_data, ax=ax, **kwargs)
+
+    # Annotate the heatmap with mean values and standard errors
+    for i in range(input_data.shape[0]):
+        for j in range(input_data.shape[1]):
+            ax.text(j + 0.5, i + 0.5, f"{input_data[i, j]:.4f} \n± {std_err[i, j]:.4f}",
+                    ha="center", va="center", fontsize=24,
+                    bbox=dict(facecolor="white", edgecolor="none", pad=0.2))
+    return ax
+
+
 if __name__ == '__main__':
     # some parameters used for this experiment
-    n_simulations = 1000
-    time_points = 4200
+    n_simulations = 100
+    time_points = 5500
 
     # generate random data
     dt = 1 / 2
@@ -109,11 +124,11 @@ if __name__ == '__main__':
         plt.plot(solution[:, 1].T, label='Nonlinear model')
         plt.plot(solution[:, 2].T, c='#13678A', label='Linear model')
         plt.xlim((0, 50))
-        plt.xticks(np.arange(0, 60, 10), np.arange(0, 60, 10), color='k')
-        plt.yticks([-2.5, 2.5], color='k')
-        plt.title('True state vs. linear & nonlinear estimations')
-        plt.xlabel('Time', color='k')
-        plt.ylabel('Magnitude', color='k')
+        plt.xticks(np.arange(0, 60, 10), np.arange(0, 60, 10), color='k', fontsize=18)
+        plt.yticks([-2.5, 2.5], color='k', fontsize=18)
+        plt.title('True state vs. estimations', fontsize=20)
+        plt.xlabel('Time', color='k', fontsize=18)
+        plt.ylabel('Magnitude', color='k', fontsize=18)
         plt.legend(prop={'size': 9}, ncol=1)
         plt.tight_layout()
         plt.savefig(results_path / 'estimations_first_50.pdf')
@@ -123,12 +138,12 @@ if __name__ == '__main__':
         plt.plot(solution[:, 0].T, c='k', label='True')
         plt.plot(solution[:, 1].T, label='Nonlinear model')
         plt.plot(solution[:, 2].T, c='#13678A', label='Linear model')
-        plt.xlim((4149, 4199))
-        plt.xticks(np.arange(4149, 4209, 10), np.arange(4149, 4209, 10), color='k')
-        plt.yticks([-2.5, 2.5], color='k')
-        plt.title('True state vs. linear & nonlinear estimations')
-        plt.xlabel('Time', color='k')
-        plt.ylabel('Magnitude', color='k')
+        plt.xlim((5449, 5499))
+        plt.xticks(np.arange(5449, 5509, 10), np.arange(5449, 5509, 10), color='k', fontsize=18)
+        plt.yticks([-2.5, 2.5], color='k', fontsize=18)
+        plt.title('True state vs. estimations', fontsize=20)
+        plt.xlabel('Time', color='k', fontsize=18)
+        plt.ylabel('Magnitude', color='k', fontsize=18)
         plt.legend(prop={'size': 9}, ncol=1)
         plt.tight_layout()
         plt.savefig(results_path / 'estimations_last_50.pdf')
@@ -157,11 +172,11 @@ if __name__ == '__main__':
 
         plt.xlim((0, len(__moving_average(nl_error_mean, moving))))
         plt.ylim((0))
-        plt.xticks(np.arange(0, 4209, 1000), np.arange(0, 4209, 1000), color='k')
-        plt.yticks(color='k')
-        plt.title('Mean and standard errors of loss')
-        plt.xlabel('Time', color='k')
-        plt.ylabel('Error', color='k')
+        plt.xticks(np.arange(0, 5509, 1000), np.arange(0, 5509, 1000), color='k', fontsize=18)
+        plt.yticks(color='k', fontsize=18)
+        plt.title('Mean & standard errors of loss', fontsize=18)
+        plt.xlabel('Time', color='k', fontsize=18)
+        plt.ylabel('Error', color='k', fontsize=18)
         plt.legend(prop={'size': 9}, ncol=1)
         plt.tight_layout()
         plt.savefig(results_path / 'loss.pdf')
@@ -177,10 +192,10 @@ if __name__ == '__main__':
                           yerr=[np.std(errors_A_linear), np.std(errors_A_nonlinear)],
                           error_kw=dict(lw=5, capsize=5, capthick=3))
         barlist[0].set_color('#13678A')
-        plt.xticks(color='k')
-        plt.yticks(color='k')
-        plt.title('Average mean-squared error of learned A vs. true A')
-        plt.ylabel('MSE', color='k')
+        plt.xticks(color='k', fontsize=18)
+        plt.yticks(color='k', fontsize=18)
+        plt.title('Average MSE of learned A', fontsize=20)
+        plt.ylabel('MSE', color='k', fontsize=18)
         plt.legend(prop={'size': 9}, ncol=1)
         plt.tight_layout()
         plt.savefig(results_path / 'a_barplots.pdf')
@@ -190,10 +205,18 @@ if __name__ == '__main__':
         import seaborn as sns
 
         # True A
-        plt.figure(figsize=(6, 6))
-        sns.heatmap(A_truth, annot=True, linewidth=.5, cmap="cividis", cbar=False, annot_kws={"fontsize": 20},
+        _, ax = plt.subplots(figsize=(6, 6))
+
+        sns.heatmap(A_truth, ax=ax, linewidth=.5, cmap="cividis", cbar=False,
                     vmin=-2.5, vmax=2.5)
-        plt.title('True A')
+
+        for i in range(A_truth.shape[0]):
+            for j in range(A_truth.shape[1]):
+                ax.text(j + 0.5, i + 0.5, f"{A_truth[i, j]:.3f}",
+                        ha="center", va="center", fontsize=24,
+                        bbox=dict(facecolor="white", edgecolor="none", pad=0.2))
+
+        plt.title('True A', fontsize=24)
         plt.axis('off')
         plt.tight_layout()
         plt.savefig(results_path / 'a_true.pdf')
@@ -203,10 +226,9 @@ if __name__ == '__main__':
         plt.figure(figsize=(6, 6))
         nl_A_sd = np.std(As_nonlinear, axis=0)
         nl_A_se = np.std(As_nonlinear, axis=0, ddof=1) / np.sqrt(np.size(As_nonlinear, axis=0))
-        sns.heatmap(np.mean(As_nonlinear, axis=0), annot=True, linewidth=.5, cmap="cividis", cbar=False,
-                    annot_kws={"fontsize": 20},
-                    vmin=-2.5, vmax=2.5)
-        plt.title('Learned A in nonlinear model')
+        _annotated_heatmap(np.mean(As_nonlinear, axis=0), nl_A_se, linewidth=.5, cmap="cividis", cbar=False,
+                           vmin=-2.5, vmax=2.5)
+        plt.title('Learned A (nonlinear)', fontsize=24)
         plt.axis('off')
         plt.tight_layout()
         plt.savefig(results_path / 'a_nonlinear.pdf')
@@ -216,11 +238,10 @@ if __name__ == '__main__':
         plt.figure(figsize=(6, 6))
         l_A_sd = np.std(As_linear, axis=0)
         l_A_se = np.std(As_linear, axis=0, ddof=1) / np.sqrt(np.size(As_linear, axis=0))
-        sns.heatmap(np.mean(As_linear, axis=0), annot=True, linewidth=.5, cmap="cividis", cbar=False,
-                    annot_kws={"fontsize": 20},
-                    vmin=-2.5, vmax=2.5)
-        # plt.imshow(np.mean(As_linear, axis=0), cmap='cividis', vmin=-1, vmax=1)
-        plt.title('Learned A in linear model')
+        _annotated_heatmap(np.mean(As_linear, axis=0), l_A_se, linewidth=.5, cmap="cividis", cbar=False,
+                           vmin=-2.5, vmax=2.5)
+
+        plt.title('Learned A (linear)', fontsize=24)
         plt.axis('off')
         plt.tight_layout()
         plt.savefig(results_path / 'a_linear.pdf')
@@ -232,7 +253,7 @@ if __name__ == '__main__':
 
         # fitting
         data = solution[:, 0]
-        data = data[4149:4199].T
+        data = data[5449:5499].T
         N = 50  # number of data points
         t = np.linspace(0, 4 * np.pi, N)
         guess_mean = np.mean(data)
@@ -252,12 +273,12 @@ if __name__ == '__main__':
         plt.plot(sol[:, 0].T, c='k', label='True')
         plt.plot(sol[:, 1].T, c='#FF00FF', label=r'$a \times sin(b \times t + c)$')
         plt.xlim((0, 50))
-        plt.xticks(np.arange(0, 60, 10), np.arange(0, 60, 10), color='k')
-        plt.yticks([-3, 3], color='k')
-        plt.title('True state vs. a fitted parametric sinusoidal signal')
-        plt.xlabel('Time', color='k')
-        plt.ylabel('Magnitude', color='k')
-        plt.legend(prop={'size': 9}, ncol=1)
+        plt.xticks(np.arange(0, 60, 10), np.arange(0, 60, 10), color='k', fontsize=18)
+        plt.yticks([-3, 3], color='k', fontsize=18)
+        plt.title('True state vs. fitted sin model', fontsize=20)
+        plt.xlabel('Time', color='k', fontsize=18)
+        plt.ylabel('Magnitude', color='k', fontsize=18)
+        plt.legend(prop={'size': 9}, ncol=1, loc='upper right')
         plt.tight_layout()
         plt.savefig(results_path / 'sin_true_fit.pdf')
         plt.show()
