@@ -187,6 +187,9 @@ class NeuralKalmanFilter(nn.Module):
 
                 # update the emission after inference converges
                 self.update_emission(learn_lr)
+                
+            if i % 10 == 0:
+                print(f"Learned {i} epochs")
 
 
 class TemporalPC(nn.Module):
