@@ -7,7 +7,7 @@ def to_np(x):
 
 
 def to_torch(x, device):
-    return torch.from_numpy(x).to(device)
+    return torch.from_numpy(x).to(device, torch.float32)
 
 
 class Tanh(nn.Module):
