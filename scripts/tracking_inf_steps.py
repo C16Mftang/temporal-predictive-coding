@@ -121,8 +121,8 @@ lw = 1
 plt.figure(figsize=(6, 2))
 plt.plot(zs[2, 570:591], c='k', label='True')
 plt.plot(zs_kf[2, 570:591], label='Kalman Filter')
-plt.plot(zs_nkf1[2, 570:591], c='#13678A', label='tPC (1 step)')
-plt.plot(zs_nkf[2, 570:591], c='#45C4B0', label='tPC (10 Steps)')
+# plt.plot(zs_nkf1[2, 570:591], c='#13678A', label='tPC (1 step)')
+plt.plot(zs_nkf[2, 570:591], c='#45C4B0', label='tPC')
 # plt.plot(zs_nkf0[2, 560:600], c='#9AEBA3', label='PC Equilibrium', ls=':')
 
 plt.xticks(np.arange(0, 30, 10), np.arange(570, 600, 10), color='k')
@@ -134,7 +134,7 @@ plt.legend(prop={'size': 9}, ncol=2)
 # fig.supxlabel('Timestep')
 # fig.supylabel('Value')
 plt.tight_layout()
-plt.savefig(result_path + '/gradient_steps_acc_ccn.pdf')
+plt.savefig(result_path + '/gradient_steps_acc_ccn', dpi=500)
 
 # compare online inference:
 if False:
