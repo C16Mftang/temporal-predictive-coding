@@ -241,10 +241,6 @@ class TemporalPC(nn.Module):
 
     def inference(self, inf_iters, inf_lr, x, u, prev_z, update_x=False):
         """prev_z should be set up outside the inference, from the previous timestep
-
-        Args:
-            train: determines whether we are at the training or inference stage
-        
         After every time step, we change prev_z to self.z
         """
         with torch.no_grad():
@@ -263,5 +259,72 @@ class TemporalPC(nn.Module):
         err_z, err_x = self.update_errs(x, u, prev_z)
         self.hidden_loss = torch.sum(err_z ** 2)
         self.obs_loss = torch.sum(err_x ** 2)
+        energy = self.hidden_loss + self.obs_loss
+        return energy
+
+
+class MultilayertPC(nn.Module):
+    """Multi-layer tPC class, using autograd"""
+    def __init__(self, hidden_size, output_size, nonlin='tanh'):
+        super(MultilayertPC, self).__init__()
+        self.hidden_size = hidden_size
+        self.Wr = nn.Linear(hidden_size, hidden_size, bias=False)
+        self.Wout = nn.Linear(hidden_size, output_size, bias=False)
+
+        if nonlin == 'linear':
+            self.nonlin = Linear()
+        elif nonlin == 'tanh':
+            self.nonlin = Tanh()
+        else:
+            raise ValueError("no such nonlinearity!")
+    
+    def forward(self, prev_z):
+        pred_z = self.Wr(self.nonlin(prev_z))
+        pred_x = self.Wout(self.nonlin(pred_z))
+        return pred_z, pred_x
+
+    def init_hidden(self, bsz):
+        """Initializing prev_z"""
+        return nn.init.kaiming_uniform_(torch.empty(bsz, self.hidden_size))
+
+    def update_errs(self, x, prev_z):
+        pred_z, _ = self.forward(prev_z)
+        pred_x = self.Wout(self.nonlin(self.z))
+        err_z = self.z - pred_z
+        err_x = x - pred_x
+        return err_z, err_x
+    
+    def update_nodes(self, x, prev_z, inf_lr, update_x=False):
+        err_z, err_x = self.update_errs(x, prev_z)
+        delta_z = err_z - self.nonlin.deriv(self.z) * torch.matmul(err_x, self.Wout.weight.detach().clone())
+        self.z -= inf_lr * delta_z
+        if update_x:
+            delta_x = err_x
+            x -= inf_lr * delta_x
+
+    def inference(self, inf_iters, inf_lr, x, prev_z, update_x=False):
+        """prev_z should be set up outside the inference, from the previous timestep
+
+        Args:
+            train: determines whether we are at the training or inference stage
+        
+        After every time step, we change prev_z to self.z
+        """
+        with torch.no_grad():
+            # initialize the current hidden state with a forward pass
+            self.z, _ = self.forward(prev_z)
+
+            # update the values nodes
+            for i in range(inf_iters):
+                self.update_nodes(x, prev_z, inf_lr, update_x)
+                
+    def update_grads(self, x, prev_z):
+        """x: input at a particular timestep in stimulus
+        
+        Could add some sparse penalty to weights
+        """
+        err_z, err_x = self.update_errs(x, prev_z)
+        self.hidden_loss = torch.sum(err_z**2)
+        self.obs_loss = torch.sum(err_x**2)
         energy = self.hidden_loss + self.obs_loss
         return energy
