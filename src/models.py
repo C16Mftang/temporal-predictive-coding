@@ -286,6 +286,9 @@ class MultilayertPC(nn.Module):
     def init_hidden(self, bsz):
         """Initializing prev_z"""
         return nn.init.kaiming_uniform_(torch.empty(bsz, self.hidden_size))
+    
+    def get_hidden(self):
+        return self.z.clone().detach()
 
     def update_errs(self, x, prev_z):
         pred_z, _ = self.forward(prev_z)
