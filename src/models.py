@@ -321,7 +321,7 @@ class MultilayertPC(nn.Module):
             for i in range(inf_iters):
                 self.update_nodes(x, prev_z, inf_lr, update_x)
                 
-    def update_grads(self, x, prev_z):
+    def get_energy(self, x, prev_z):
         """x: input at a particular timestep in stimulus
         
         Could add some sparse penalty to weights
