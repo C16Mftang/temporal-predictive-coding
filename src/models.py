@@ -300,15 +300,16 @@ class MultilayertPC(nn.Module):
         err_x = x - pred_x
         return err_z, err_x
     
-    def update_nodes(self, x, prev_z, inf_lr, update_x=False):
+    def update_nodes(self, x, prev_z, inf_lr, sparse_z, update_x=False):
         err_z, err_x = self.update_errs(x, prev_z)
         delta_z = err_z - self.nonlin.deriv(self.z) * torch.matmul(err_x, self.Wout.weight.detach().clone())
+        delta_z += sparse_z * torch.sign(self.z)
         self.z -= inf_lr * delta_z
         if update_x:
             delta_x = err_x
             x -= inf_lr * delta_x
 
-    def inference(self, inf_iters, inf_lr, x, prev_z, update_x=False):
+    def inference(self, inf_iters, inf_lr, x, prev_z, sparse_z=0, update_x=False):
         """prev_z should be set up outside the inference, from the previous timestep
 
         Args:
@@ -323,7 +324,7 @@ class MultilayertPC(nn.Module):
             # update the values nodes
             self.inf_losses = []
             for i in range(inf_iters):
-                self.update_nodes(x, prev_z, inf_lr, update_x)
+                self.update_nodes(x, prev_z, inf_lr, sparse_z, update_x)
                 # logging the energy during inference
                 self.inf_losses.append(self.get_energy(x, prev_z))
                 

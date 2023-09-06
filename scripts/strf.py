@@ -29,8 +29,10 @@ parser.add_argument('--inf-lr', type=float, default=1e-2,
                     help='inference step size')
 parser.add_argument('--inf-iters', type=int, default=50,
                     help='inference steps in each training epoch')
-parser.add_argument('--sparsity', type=float, default=1e-3,
+parser.add_argument('--sparseW', type=float, default=1e-3,
                     help='spasity level for model parameters')
+parser.add_argument('--sparsez', type=float, default=1e-2,
+                    help='spasity level for hidden activities')
 parser.add_argument('--STA', type=str, default='False', choices=['False', 'True'],
                     help='whether to perform STA')       
 parser.add_argument('--std', type=float, default=3.,
@@ -63,6 +65,21 @@ def _plot_strf(strf, tau, result_path):
         ax[i].axis('off')
     plt.savefig(result_path + f'/strf')
 
+def _plot_weights(Wr, Wout, hidden_size, h, w, result_path):
+    # plot Wout
+    fig, axes = plt.subplots(1024 // 32, 32)
+    for i, ax in enumerate(axes.flatten()):
+        ax.imshow(to_np(Wout)[:, i].reshape((h, w)), cmap='gray')
+        ax.axis('off')
+    plt.savefig(result_path + '/Wout')
+
+    d = int(np.sqrt(hidden_size))
+    fig, axes = plt.subplots(hidden_size // 32, 32, figsize=(8, 8))
+    for i, ax in enumerate(axes.flatten()):
+        ax.imshow(to_np(Wr)[:, i].reshape((d, d)), cmap='gray')
+        ax.axis('off')
+    plt.savefig(result_path + '/Wr')
+
 def main(args):
     h, w = 16, 16
     seq_len = 50
@@ -75,7 +92,8 @@ def main(args):
     learn_iters = args.learn_iters
     inf_lr = args.inf_lr
     inf_iters = args.inf_iters
-    sparse = args.sparsity
+    sparseW = args.sparseW
+    sparsez = args.sparsez
 
     # inference hyperparameters
     STA = args.STA
@@ -89,14 +107,14 @@ def main(args):
     # Train model
     if STA == 'False':
         # make directory for saving files
-        now = time.strftime('%b-%d-%Y-%H:%M:%S', time.gmtime(time.time()))
+        now = time.strftime('%b-%d-%Y-%H-%M-%S', time.gmtime(time.time()))
         path = f'strf-{now}'
         result_path = os.path.join('./results/', path)
         if not os.path.exists(result_path):
             os.makedirs(result_path)
 
         # processing data
-        d_path = "nat_data/nat_16x16x50.npy"
+        d_path = "data/nat_data/nat_16x16x50.npy"
         movie = np.load(d_path)
         train = movie[:train_size].reshape((train_size, -1, h, w))
 
@@ -104,7 +122,7 @@ def main(args):
         train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
 
         # train model                                
-        train_losses = train_batched_input(tPC, optimizer, train_loader, learn_iters, inf_iters, inf_lr, sparse, device)
+        train_losses = train_batched_input(tPC, optimizer, train_loader, learn_iters, inf_iters, inf_lr, sparseW, sparsez, device)
         torch.save(tPC.state_dict(), os.path.join(result_path, f'model.pt'))
         _plot_train_loss(train_losses, result_path)
 
@@ -120,6 +138,11 @@ def main(args):
             tPC.load_state_dict(torch.load(os.path.join(result_path, f'model.pt'), 
                                            map_location=torch.device(device)))
             tPC.eval()
+
+            # first, study the weights learned
+            Wout = tPC.Wout.weight # 
+            Wr = tPC.Wr.weight
+            _plot_weights(Wr, Wout, hidden_size, h, w, result_path)
 
             # create white noise stimuli
             g = torch.Generator()
@@ -140,7 +163,7 @@ def main(args):
             inf_losses = torch.zeros((inf_iters_test, ))
             for k in range(seq_len):
                 x = white_noise[k].clone().detach()
-                tPC.inference(inf_iters_test, inf_lr_test, x, prev)
+                tPC.inference(inf_iters_test, inf_lr_test, x, prev, sparsez)
                 prev = tPC.get_hidden()
                 hidden[k] = tPC.get_hidden()
                 inf_losses += tPC.get_inf_losses() / seq_len
