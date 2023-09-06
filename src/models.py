@@ -290,6 +290,9 @@ class MultilayertPC(nn.Module):
     def get_hidden(self):
         return self.z.clone().detach()
 
+    def get_inf_losses(self):
+        return torch.tensor(self.inf_losses) # inf_iters, 
+
     def update_errs(self, x, prev_z):
         pred_z, _ = self.forward(prev_z)
         pred_x = self.Wout(self.nonlin(self.z))
@@ -318,8 +321,11 @@ class MultilayertPC(nn.Module):
             self.z, _ = self.forward(prev_z)
 
             # update the values nodes
+            self.inf_losses = []
             for i in range(inf_iters):
                 self.update_nodes(x, prev_z, inf_lr, update_x)
+                # logging the energy during inference
+                self.inf_losses.append(self.get_energy(x, prev_z))
                 
     def get_energy(self, x, prev_z):
         """x: input at a particular timestep in stimulus
