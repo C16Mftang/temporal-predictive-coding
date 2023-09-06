@@ -67,18 +67,18 @@ def _plot_strf(strf, tau, result_path):
 
 def _plot_weights(Wr, Wout, hidden_size, h, w, result_path):
     # plot Wout
-    fig, axes = plt.subplots(1024 // 32, 32)
+    fig, axes = plt.subplots(1024 // 32, 32, figsize=(8, 8))
     for i, ax in enumerate(axes.flatten()):
         ax.imshow(to_np(Wout)[:, i].reshape((h, w)), cmap='gray')
         ax.axis('off')
     plt.savefig(result_path + '/Wout')
 
-    d = int(np.sqrt(hidden_size))
-    fig, axes = plt.subplots(hidden_size // 32, 32, figsize=(8, 8))
-    for i, ax in enumerate(axes.flatten()):
-        ax.imshow(to_np(Wr)[:, i].reshape((d, d)), cmap='gray')
-        ax.axis('off')
-    plt.savefig(result_path + '/Wr')
+    # d = int(np.sqrt(hidden_size))
+    # fig, axes = plt.subplots(hidden_size // 32, 32, figsize=(8, 8))
+    # for i, ax in enumerate(axes.flatten()):
+    #     ax.imshow(to_np(Wr)[:, i].reshape((d, d)), cmap='gray')
+    #     ax.axis('off')
+    # plt.savefig(result_path + '/Wr')
 
 def main(args):
     h, w = 16, 16
@@ -126,6 +126,11 @@ def main(args):
         torch.save(tPC.state_dict(), os.path.join(result_path, f'model.pt'))
         _plot_train_loss(train_losses, result_path)
 
+        # visualize weights learned
+        Wout = tPC.Wout.weight # 
+        Wr = tPC.Wr.weight
+        _plot_weights(Wr, Wout, hidden_size, h, w, result_path)
+
     # evaluate with white noise
     elif STA == 'True':
         dir = input('Select a model by entering its sub-directory:')
@@ -138,11 +143,6 @@ def main(args):
             tPC.load_state_dict(torch.load(os.path.join(result_path, f'model.pt'), 
                                            map_location=torch.device(device)))
             tPC.eval()
-
-            # first, study the weights learned
-            Wout = tPC.Wout.weight # 
-            Wr = tPC.Wr.weight
-            _plot_weights(Wr, Wout, hidden_size, h, w, result_path)
 
             # create white noise stimuli
             g = torch.Generator()

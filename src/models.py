@@ -291,7 +291,13 @@ class MultilayertPC(nn.Module):
         return self.z.clone().detach()
 
     def get_inf_losses(self):
-        return torch.tensor(self.inf_losses) # inf_iters, 
+        return torch.tensor(self.inf_losses) # inf_iters,
+
+    def weight_norm(self):
+        # in-place normalization of weight parameters
+        with torch.no_grad():
+            self.Wout.weight.div_(torch.norm(self.Wout.weight, dim=0, keepdim=True)) 
+            self.Wr.weight.div_(torch.norm(self.Wr.weight, dim=0, keepdim=True)) 
 
     def update_errs(self, x, prev_z):
         pred_z, _ = self.forward(prev_z)

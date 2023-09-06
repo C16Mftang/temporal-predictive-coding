@@ -61,6 +61,9 @@ def train_batched_input(model, optimizer, loader, learn_iters, inf_iters, inf_lr
                 optimizer.step()
                 prev = model.z.clone().detach()
 
+                # weight normalization - necessary for sparse coding!
+                model.weight_norm()
+
                 # add up the loss value at each time step
                 batch_loss += energy.item() / seq_len
 
