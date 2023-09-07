@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import time
 import numpy as np
+from tqdm import tqdm
 
 def to_np(x):
     return x.cpu().detach().numpy()
@@ -35,46 +36,50 @@ def train_batched_input(model, optimizer, loader, learn_iters, inf_iters, inf_lr
 
         # train the model
         model.train()
-        for xs in loader:
-            # xs = xs[0]
-            batch_size, seq_len = xs.shape[:2]
+        with tqdm(total=len(loader.dataset)) as pbar:
+            for xs in loader:
+                # xs = xs[0]
+                batch_size, seq_len = xs.shape[:2]
 
-            # reshape image to vector
-            xs = xs.reshape((batch_size, seq_len, -1)).to(device)
+                # reshape image to vector
+                xs = xs.reshape((batch_size, seq_len, -1)).to(device)
 
-            # initialize the hidden activities
-            prev = model.init_hidden(batch_size).to(device)
+                # initialize the hidden activities
+                prev = model.init_hidden(batch_size).to(device)
 
-            batch_loss = 0
-            for k in range(seq_len):
-                x = xs[:, k, :].clone().detach()
-                optimizer.zero_grad()
-                model.inference(inf_iters, inf_lr, x, prev, sparsez)
-                energy = model.get_energy(x, prev)
+                batch_loss = 0
+                for k in range(seq_len):
+                    x = xs[:, k, :].clone().detach()
+                    optimizer.zero_grad()
+                    model.inference(inf_iters, inf_lr, x, prev, sparsez)
+                    energy = model.get_energy(x, prev)
 
-                # add sparse constraint
-                if sparseW is not None:
-                    l1_norm = sum(torch.linalg.norm(p, 1) for p in model.parameters())
-                    energy += sparseW * l1_norm
-                    
-                energy.backward()
-                optimizer.step()
-                prev = model.z.clone().detach()
+                    # add sparse constraint
+                    if sparseW is not None:
+                        l1_norm = sum(torch.linalg.norm(p, 1) for p in model.parameters())
+                        energy += sparseW * l1_norm
+                        
+                    energy.backward()
+                    optimizer.step()
+                    prev = model.z.clone().detach()
 
-                # weight normalization - necessary for sparse coding!
-                model.weight_norm()
+                    # weight normalization - necessary for sparse coding!
+                    model.weight_norm()
 
-                # add up the loss value at each time step
-                batch_loss += energy.item() / seq_len
+                    # add up the loss value at each time step
+                    batch_loss += energy.item() / seq_len
 
-            # add the loss in this batch
-            epoch_loss += batch_loss / batch_size
+                # add the loss in this batch
+                epoch_loss += batch_loss / batch_size
 
+                # update progress bar
+                pbar.set_postfix({'epoch': learn_iter, 'loss': (batch_loss / batch_size)})
+                pbar.update(batch_size)
 
-        train_losses.append(epoch_loss)
-        # val_losses.append(val_loss)
-        if (learn_iter + 1) % 10 == 0:
-            print(f'Epoch {learn_iter+1}, train loss {epoch_loss}')
+            train_losses.append(epoch_loss)
+            # val_losses.append(val_loss)
+            # if (learn_iter + 1) % 10 == 0:
+            #     print(f'Epoch {learn_iter+1}, train loss {epoch_loss}')
 
     print(f'training PC complete, time: {time.time() - start_time}')
     return train_losses
