@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(description='Spatio-temporal receptive fields')
 
 parser.add_argument('--train-size', type=int, default=100000, 
                     help='training size')
-parser.add_argument('--batch-size', type=int, default=5000, 
+parser.add_argument('--batch-size', type=int, default=10000, 
                     help='training batch size')
 parser.add_argument('--hidden-size', type=int, default=1024,
                     help='hidden siz')
@@ -29,9 +29,9 @@ parser.add_argument('--inf-lr', type=float, default=1e-2,
                     help='inference step size')
 parser.add_argument('--inf-iters', type=int, default=50,
                     help='inference steps in each training epoch')
-parser.add_argument('--sparseW', type=float, default=1e-3,
+parser.add_argument('--sparseW', type=float, default=2.0,
                     help='spasity level for model parameters')
-parser.add_argument('--sparsez', type=float, default=1e-2,
+parser.add_argument('--sparsez', type=float, default=2.0,
                     help='spasity level for hidden activities')
 parser.add_argument('--STA', type=str, default='False', choices=['False', 'True'],
                     help='whether to perform STA')       
@@ -39,6 +39,8 @@ parser.add_argument('--std', type=float, default=3.,
                     help='level of standard deviation for white noise')               
 parser.add_argument('--tau', type=int, default=6,
                     help='number of preceding frames in STA')      
+parser.add_argument('--nonlin', type=str, default='linear', choices=['linear', 'tanh'],
+                    help='nonlinearity') 
 
 args = parser.parse_args()
 
@@ -67,10 +69,11 @@ def _plot_strf(strf, tau, result_path):
 
 def _plot_weights(Wr, Wout, hidden_size, h, w, result_path):
     # plot Wout
-    fig, axes = plt.subplots(1024 // 32, 32, figsize=(8, 8))
+    fig, axes = plt.subplots(hidden_size // 32, 32, figsize=(32, hidden_size // 32))
     for i, ax in enumerate(axes.flatten()):
         ax.imshow(to_np(Wout)[:, i].reshape((h, w)), cmap='gray')
         ax.axis('off')
+    fig.tight_layout()
     plt.savefig(result_path + '/Wout')
 
     # d = int(np.sqrt(hidden_size))
@@ -94,6 +97,7 @@ def main(args):
     inf_iters = args.inf_iters
     sparseW = args.sparseW
     sparsez = args.sparsez
+    nonlin = args.nonlin
 
     # inference hyperparameters
     STA = args.STA
@@ -101,7 +105,7 @@ def main(args):
     tau = args.tau
 
     # initialize model
-    tPC = MultilayertPC(hidden_size, h * w).to(device)
+    tPC = MultilayertPC(hidden_size, h * w, nonlin).to(device)
     optimizer = torch.optim.Adam(tPC.parameters(), lr=learn_lr)
 
     # Train model
@@ -114,8 +118,8 @@ def main(args):
             os.makedirs(result_path)
 
         # processing data
-        d_path = "data/nat_data/nat_16x16x50.npy"
-        movie = np.load(d_path)
+        d_path = "nat_data/nat_16x16x50.npy"
+        movie = np.load(d_path, mmap_mode='r+') # mmap to disk?
         train = movie[:train_size].reshape((train_size, -1, h, w))
 
         # make training data a dataloader
