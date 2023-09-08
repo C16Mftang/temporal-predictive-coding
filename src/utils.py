@@ -69,11 +69,11 @@ def train_batched_input(model, optimizer, loader, learn_iters, inf_iters, inf_lr
                     # add up the loss value at each time step
                     batch_loss += energy.item() / seq_len
 
-                # add the loss in this batch
-                epoch_loss += batch_loss / batch_size
+                # add the loss in this batch, and average across batches
+                epoch_loss += batch_loss / (len(loader.dataset) // batch_size)
 
                 # update progress bar
-                pbar.set_postfix({'epoch': learn_iter, 'loss': (batch_loss / batch_size)})
+                pbar.set_postfix({'epoch': learn_iter, 'loss': (batch_loss)})
                 pbar.update(batch_size)
 
             train_losses.append(epoch_loss)
