@@ -69,16 +69,17 @@ def _plot_strf(strf, tau, result_path):
 
 def _plot_weights(Wr, Wout, hidden_size, h, w, result_path):
     # plot Wout
-    fig, axes = plt.subplots(hidden_size // 32, 32, figsize=(32, hidden_size // 32))
+    fig, axes = plt.subplots(hidden_size // 32, 32, figsize=(8, (hidden_size // 32) // 4))
     for i, ax in enumerate(axes.flatten()):
         f = to_np(Wout)[:, i]
         # normalize the filter between -1 and 1
         f = (f - np.min(f)) / (np.max(f) - np.min(f))
         f = 2 * f - 1
-        ax.imshow(f.reshape((h, w)), cmap='gray')
+        im = ax.imshow(f.reshape((h, w)), cmap='gray')
         ax.axis('off')
-    fig.tight_layout()
-    plt.savefig(result_path + '/Wout')
+    fig.colorbar(im, ax=axes.ravel().tolist())
+    # fig.tight_layout()
+    plt.savefig(result_path + '/Wout', dpi=200)
 
     # d = int(np.sqrt(hidden_size))
     # fig, axes = plt.subplots(hidden_size // 32, 32, figsize=(8, 8))
