@@ -66,14 +66,14 @@ def train_batched_input(model, optimizer, loader, learn_iters, inf_iters, inf_lr
                     # weight normalization - necessary for sparse coding!
                     model.weight_norm()
 
-                    # add up the loss value at each time step
+                    # add up the loss value at each time step then get the average across sequence elements
                     batch_loss += energy.item() / seq_len
 
-                # add the loss in this batch, and average across batches
+                # add the loss in this batch, and average across batches i.e., this epoch's batch average loss
                 epoch_loss += batch_loss / (len(loader.dataset) // batch_size)
 
                 # update progress bar
-                pbar.set_postfix({'epoch': learn_iter, 'loss': (batch_loss)})
+                pbar.set_postfix({'epoch': learn_iter, 'loss': "%.4f" % batch_loss})
                 pbar.update(batch_size)
 
             train_losses.append(epoch_loss)
