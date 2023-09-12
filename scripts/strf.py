@@ -5,7 +5,9 @@ import argparse
 import numpy as np
 import torch
 import torch.nn as nn
+# import opinionated
 import matplotlib.pyplot as plt
+plt.style.use('ggplot')
 from src.models import TemporalPC, MultilayertPC
 from src.utils import *
 
@@ -41,6 +43,8 @@ parser.add_argument('--tau', type=int, default=6,
                     help='number of preceding frames in STA')      
 parser.add_argument('--nonlin', type=str, default='linear', choices=['linear', 'tanh'],
                     help='nonlinearity') 
+parser.add_argument('--infer-with', type=str, default='white noise', choices=['white noise', 'test'],
+                    help='data on which the inference is performed')
 
 args = parser.parse_args()
 
@@ -59,13 +63,23 @@ def _plot_inf_losses(inf_losses, result_path):
     plt.xlabel('Inference iters')
     plt.savefig(result_path + f'/inf_losses')
 
-def _plot_strf(strf, tau, result_path):
-    fig, ax = plt.subplots(1, tau, figsize=(tau, 2))
-    for i in range(tau):
-        ax[i].imshow(strf[i], cmap='gray')
-        ax[i].set_title(f'{i - tau}')
-        ax[i].axis('off')
-    plt.savefig(result_path + f'/strf')
+def _plot_strf(all_strfs, tau, result_path, hidden_size, n_files=20):
+    n_units_per_file = hidden_size // n_files
+    for f in range(n_files):
+        strfs = all_strfs[f*n_units_per_file:(f+1)*n_units_per_file] # n_units_per_file, tau
+        fig, ax = plt.subplots(n_units_per_file, tau, figsize=(tau//2, n_units_per_file//2))
+        for i in range(n_units_per_file):
+            # normalize the filters
+            rf = strfs[i]
+            # rf = (rf - np.min(rf)) / (np.max(rf) - np.min(rf))
+            # rf = 2 * rf - 1
+            ax[i, 0].set_title(f'Neuron {(i + 1) + (n_units_per_file * f)}')
+            for j in range(tau):
+                ax[i, j].imshow(rf[j], cmap='gray')
+                ax[i, j].axis('off')
+        # fig.tight_layout()
+        plt.savefig(result_path + f'/strf_group{f+1}')
+        plt.close()
 
 def _plot_weights(Wr, Wout, hidden_size, h, w, result_path):
     # plot Wout
@@ -103,6 +117,7 @@ def main(args):
     sparseW = args.sparseW
     sparsez = args.sparsez
     nonlin = args.nonlin
+    infer_with = args.infer_with
 
     # inference hyperparameters
     STA = args.STA
@@ -123,7 +138,7 @@ def main(args):
             os.makedirs(result_path)
 
         # processing data
-        d_path = "nat_data/nat_16x16x50.npy"
+        d_path = "data/nat_data/nat_16x16x50.npy"
         movie = np.load(d_path, mmap_mode='r+') # mmap to disk?
         train = movie[:train_size].reshape((train_size, -1, h, w))
 
@@ -158,48 +173,61 @@ def main(args):
             Wr = tPC.Wr.weight
             _plot_weights(Wr, Wout, hidden_size, h, w, result_path)
 
+            # create test data
+            test_size = 100
+            d_path = "data/nat_data/nat_16x16x50.npy"
+            movie = np.load(d_path, mmap_mode='r+') # mmap to disk?
+            test = movie[train_size:train_size+test_size]
+
             # create white noise stimuli
-            g = torch.Generator()
-            g.manual_seed(48)
-            white_noise = (torch.rand((seq_len, h * w), generator=g) < 0.5).to(device, torch.float32)
-            # convert them to -1 and 1s
-            white_noise = std * (white_noise * 2 - 1)
+            if infer_with == 'white noise':
+                g = torch.Generator()
+                g.manual_seed(48)
+                white_noise = (torch.rand((test_size, seq_len, h * w), generator=g) < 0.5).to(device, torch.float32)
+                # convert them to -1 and 1s
+                white_noise = std * (white_noise * 2 - 1)
+                test = to_np(white_noise)
 
             # perform inference on the white noise stimuli
-            inf_iters_test = 100
+            inf_iters_test = 200
             inf_lr_test = 1e-2
 
             # initialize the hidden activities; batch size is 1 as we are interested in one sequence only
-            prev = tPC.init_hidden(1).to(device)
-            hidden = torch.zeros((seq_len, hidden_size))
+            prev = tPC.init_hidden(test_size).to(device)
 
-            # run inference on white noises
+            # avrage hidden activities across test movies
+            hidden = torch.zeros((test_size, seq_len, hidden_size)).to(device)
+
+            # run inference on test seqence
             inf_losses = torch.zeros((inf_iters_test, ))
             for k in range(seq_len):
-                x = white_noise[k].clone().detach()
+                x = to_torch(test[:, k], device)
                 tPC.inference(inf_iters_test, inf_lr_test, x, prev, sparsez)
                 prev = tPC.get_hidden()
-                hidden[k] = tPC.get_hidden()
+                hidden[:, k] = tPC.get_hidden()
                 inf_losses += tPC.get_inf_losses() / seq_len
             _plot_inf_losses(inf_losses, result_path)
 
-            # perform STA on hidden activities
-            hidden = to_np(hidden)
-            response = hidden[:, 0]
-            strfs = np.zeros((tau, h * w))
-            for k in range(tau, seq_len):
-                # get the preceding responses up to tau steps before
-                preceding_res = response[k-tau:k] # (tau, )
- 
-                # weight the stimuli with these response
-                preceding_stim = to_np(white_noise)[k-tau:k] # tau, (h*w)
+            # iterate through neurons and examine their strfs
+            all_units_strfs = np.zeros((hidden_size, tau, h, w))
+            for j in range(hidden_size):
+                response = hidden[:, :, j] # test_size, seq_len
+                strfs = torch.zeros((tau, h * w)).to(device)
+                for k in range(tau, seq_len):
+                    # get the response at the current step
+                    res = response[:, k].unsqueeze(-1).repeat(1, tau).unsqueeze(-1) # (test_size, tau, 1)
+    
+                    # weight the preceding stimuli with these response
+                    preceding_stim = to_torch(test[:, k-tau:k], device) # (test_size, tau, (h*w))
+                    weighted_preceding_stim = res * preceding_stim # (test_size, tau, (h*w))
 
-                weighted_preceding_stim = np.array([preceding_res[i] * preceding_stim[i] for i in range(tau)]) # tau, (h*w)
-                strfs += weighted_preceding_stim
+                    # average the strf along the batch dimension
+                    strfs += weighted_preceding_stim.mean(dim=0) # (tau, h*w)
 
-            strfs /= (seq_len - tau)
-            strfs = strfs.reshape((-1, h, w))
-            _plot_strf(strfs, tau, result_path)
+                strfs /= (seq_len - tau) # tau, (h*w)
+                strfs = to_np(strfs.reshape((-1, h, w)))
+                all_units_strfs[j] = strfs
+            _plot_strf(all_units_strfs, tau, result_path, hidden_size)
 
     param_path = os.path.join(result_path, 'hyperparameters.txt')
     with open(param_path, 'w') as f:
