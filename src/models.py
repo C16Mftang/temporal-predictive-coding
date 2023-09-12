@@ -300,6 +300,17 @@ class MultilayertPC(nn.Module):
             self.Wr.weight.div_(torch.norm(self.Wr.weight, dim=0, keepdim=True)) 
 
     def update_errs(self, x, prev_z):
+        """
+        Calculate the temporal and hierarchical errors in tPC
+
+        Inputs:
+            x: an element of a training sequence, shape (batch_size, feature_dim)
+            prev_z: previously inferred hidden activity, shape (batch_size, hidden_size)
+
+        Outputs:
+            err_x: hierarchical error, shape (batch_size, feature_dim)
+            err_z: temporal error, shape (batch_size, hidden_size)
+        """
         pred_z, _ = self.forward(prev_z)
         pred_x = self.Wout(self.nonlin(self.z))
         err_z = self.z - pred_z
@@ -307,6 +318,15 @@ class MultilayertPC(nn.Module):
         return err_z, err_x
     
     def update_nodes(self, x, prev_z, inf_lr, sparse_z, update_x=False):
+        """
+        Update value nodes and error nodes in tPC
+
+        Inputs: 
+            inf_lr: inference step size
+            sparse_z: sparsity constraint coefficients to the neural activities
+            update_x: whether to update the observation value nodes, useful for memory
+        """
+        bsz = x.shape[0]
         err_z, err_x = self.update_errs(x, prev_z)
         delta_z = err_z - self.nonlin.deriv(self.z) * torch.matmul(err_x, self.Wout.weight.detach().clone())
         delta_z += sparse_z * torch.sign(self.z)
@@ -316,12 +336,14 @@ class MultilayertPC(nn.Module):
             x -= inf_lr * delta_x
 
     def inference(self, inf_iters, inf_lr, x, prev_z, sparse_z=0, update_x=False):
-        """prev_z should be set up outside the inference, from the previous timestep
+        """
+        Run inference iteratively on the latent neurons;
 
-        Args:
-            train: determines whether we are at the training or inference stage
-        
-        After every time step, we change prev_z to self.z
+        Input:
+            inf_iters: inference iterations
+
+        prev_z should be set up outside the inference, from the previous timestep;
+        After every time step, remember to assign current self.z to prev_z
         """
         with torch.no_grad():
             # initialize the current hidden state with a forward pass
@@ -335,12 +357,18 @@ class MultilayertPC(nn.Module):
                 self.inf_losses.append(self.get_energy(x, prev_z))
                 
     def get_energy(self, x, prev_z):
-        """x: input at a particular timestep in stimulus
-        
-        Could add some sparse penalty to weights
         """
+        Calculate the loss function:
+            L^{(t)} = \frac{1}{B} \sum_{i=1}^B ||x_i^{(t)} - W_F z_i^{(t)}||^2 + ||z_i^{(t)} - W_R z_i^{(t-1)}||^2
+
+        Inputs:
+            x: input at a particular timestep in stimulus, shape (batch_size, input_dim)
+        
+        Sparsity to weights can be added ad-hoc
+        """
+        bsz = x.shape[0] # obtain the batch size
         err_z, err_x = self.update_errs(x, prev_z)
         self.hidden_loss = torch.sum(err_z**2)
         self.obs_loss = torch.sum(err_x**2)
-        energy = self.hidden_loss + self.obs_loss
+        energy = (self.hidden_loss + self.obs_loss) / bsz
         return energy
