@@ -73,9 +73,10 @@ def _plot_strf(all_strfs, tau, result_path, hidden_size, n_files=20):
             rf = strfs[i]
             # rf = (rf - np.min(rf)) / (np.max(rf) - np.min(rf))
             # rf = 2 * rf - 1
+            strf_min, strf_max = np.min(rf), np.max(rf)
             ax[i, 0].set_title(f'Neuron {(i + 1) + (n_units_per_file * f)}')
             for j in range(tau):
-                ax[i, j].imshow(rf[j], cmap='gray')
+                ax[i, j].imshow(rf[j], cmap='gray', vmin=strf_min, vmax=strf_max)
                 ax[i, j].axis('off')
         # fig.tight_layout()
         plt.savefig(result_path + f'/strf_group{f+1}')
@@ -83,13 +84,15 @@ def _plot_strf(all_strfs, tau, result_path, hidden_size, n_files=20):
 
 def _plot_weights(Wr, Wout, hidden_size, h, w, result_path):
     # plot Wout
+    Wout = to_np(Wout)
+    Wmin, Wmax = np.min(Wout), np.max(Wout)
     fig, axes = plt.subplots(hidden_size // 32, 32, figsize=(8, (hidden_size // 32) // 4))
     for i, ax in enumerate(axes.flatten()):
-        f = to_np(Wout)[:, i]
+        f = Wout[:, i]
         # normalize the filter between -1 and 1
-        f = (f - np.min(f)) / (np.max(f) - np.min(f))
-        f = 2 * f - 1
-        im = ax.imshow(f.reshape((h, w)), cmap='gray')
+        # f = (f - np.min(f)) / (np.max(f) - np.min(f))
+        # f = 2 * f - 1
+        im = ax.imshow(f.reshape((h, w)), cmap='gray', vmin=Wmin, vmax=Wmax)
         ax.axis('off')
     fig.colorbar(im, ax=axes.ravel().tolist())
     # fig.tight_layout()
@@ -117,12 +120,12 @@ def main(args):
     sparseW = args.sparseW
     sparsez = args.sparsez
     nonlin = args.nonlin
-    infer_with = args.infer_with
 
     # inference hyperparameters
     STA = args.STA
     std = args.std
     tau = args.tau
+    infer_with = args.infer_with
 
     # initialize model
     tPC = MultilayertPC(hidden_size, h * w, nonlin).to(device)
@@ -173,24 +176,26 @@ def main(args):
             Wr = tPC.Wr.weight
             _plot_weights(Wr, Wout, hidden_size, h, w, result_path)
 
-            # create test data
             test_size = 100
-            d_path = "data/nat_data/nat_16x16x50.npy"
-            movie = np.load(d_path, mmap_mode='r+') # mmap to disk?
-            test = movie[train_size:train_size+test_size]
+            # create test data from unseen set
+            if infer_with == 'test':
+                d_path = "data/nat_data/nat_16x16x50.npy"
+                movie = np.load(d_path, mmap_mode='r+') # mmap to disk?
+                test = movie[train_size:train_size+test_size]
 
             # create white noise stimuli
-            if infer_with == 'white noise':
+            elif infer_with == 'white noise':
                 g = torch.Generator()
-                g.manual_seed(48)
+                g.manual_seed(1)
                 white_noise = (torch.rand((test_size, seq_len, h * w), generator=g) < 0.5).to(device, torch.float32)
                 # convert them to -1 and 1s
                 white_noise = std * (white_noise * 2 - 1)
+                # white_noise = torch.randn((test_size, seq_len, h * w), generator=g).to(device, torch.float32) * std
                 test = to_np(white_noise)
 
             # perform inference on the white noise stimuli
-            inf_iters_test = 200
-            inf_lr_test = 1e-2
+            inf_iters_test = 400
+            inf_lr_test = 5e-3
 
             # initialize the hidden activities; batch size is 1 as we are interested in one sequence only
             prev = tPC.init_hidden(test_size).to(device)
@@ -216,6 +221,8 @@ def main(args):
                 for k in range(tau, seq_len):
                     # get the response at the current step
                     res = response[:, k].unsqueeze(-1).repeat(1, tau).unsqueeze(-1) # (test_size, tau, 1)
+
+                    # res = response[:, k-tau:k].unsqueeze(-1)
     
                     # weight the preceding stimuli with these response
                     preceding_stim = to_torch(test[:, k-tau:k], device) # (test_size, tau, (h*w))
