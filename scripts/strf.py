@@ -74,7 +74,7 @@ def _plot_strf(all_strfs, tau, result_path, hidden_size, n_files=20):
             rf = strfs[i]
             rf = (rf - np.min(rf)) / (np.max(rf) - np.min(rf))
             rf = 2 * rf - 1
-            strf_min, strf_max = np.min(rf), np.max(rf)
+            strf_min, strf_max = -np.max(np.abs(rf)), np.max(np.abs(rf))
             ax[i, 0].set_ylabel(f'#{(i + 1) + (n_units_per_file * f)}', fontsize=8)
             for j in range(tau):
                 ax[i, j].imshow(rf[j], cmap='gray', vmin=strf_min, vmax=strf_max)
@@ -147,7 +147,7 @@ def main(args):
             os.makedirs(result_path)
 
         # processing data
-        d_path = "./nat_data/nat_16x16x50.npy"
+        d_path = "data/nat_data/nat_16x16x50.npy"
         movie = np.load(d_path, mmap_mode='r+') # mmap to disk?
         train = movie[:train_size].reshape((train_size, -1, h, w))
 
@@ -183,6 +183,8 @@ def main(args):
             _plot_weights(Wr, Wout, hidden_size, h, w, result_path)
 
             test_size = 1000
+            test_seq_len = 500
+            seq_len = test_seq_len
             # create test data from unseen set
             if infer_with == 'test':
                 d_path = "data/nat_data/nat_16x16x50.npy"
@@ -200,8 +202,8 @@ def main(args):
                 test = to_np(white_noise)
 
             # perform inference on the white noise stimuli
-            inf_iters_test = 400
-            inf_lr_test = 5e-3
+            inf_iters_test = 100
+            inf_lr_test = 5e-2
 
             # initialize the hidden activities; batch size is 1 as we are interested in one sequence only
             prev = tPC.init_hidden(test_size).to(device)
