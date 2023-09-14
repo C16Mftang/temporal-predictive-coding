@@ -5,6 +5,7 @@ import argparse
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 # import opinionated
 import matplotlib.pyplot as plt
 plt.style.use('ggplot')
@@ -72,8 +73,8 @@ def _plot_strf(all_strfs, tau, result_path, hidden_size, n_files=20):
         for i in range(n_units_per_file):
             # normalize the filters
             rf = strfs[i]
-            rf = (rf - np.min(rf)) / (np.max(rf) - np.min(rf))
-            rf = 2 * rf - 1
+            # rf = (rf - np.min(rf)) / (np.max(rf) - np.min(rf))
+            # rf = 2 * rf - 1
             strf_min, strf_max = -np.max(np.abs(rf)), np.max(np.abs(rf))
             ax[i, 0].set_ylabel(f'#{(i + 1) + (n_units_per_file * f)}', fontsize=8)
             for j in range(tau):
@@ -93,9 +94,6 @@ def _plot_weights(Wr, Wout, hidden_size, h, w, result_path):
     fig, axes = plt.subplots(hidden_size // 32, 32, figsize=(8, (hidden_size // 32) // 4))
     for i, ax in enumerate(axes.flatten()):
         f = Wout[:, i]
-        # normalize the filter between -1 and 1
-        # f = (f - np.min(f)) / (np.max(f) - np.min(f))
-        # f = 2 * f - 1
         im = ax.imshow(f.reshape((h, w)), cmap='gray', vmin=Wmin, vmax=Wmax)
         ax.axis('off')
     fig.colorbar(im, ax=axes.ravel().tolist())
@@ -183,7 +181,7 @@ def main(args):
             _plot_weights(Wr, Wout, hidden_size, h, w, result_path)
 
             test_size = 1000
-            test_seq_len = 500
+            test_seq_len = 100
             seq_len = test_seq_len
             # create test data from unseen set
             if infer_with == 'test':
@@ -223,24 +221,34 @@ def main(args):
 
             # iterate through neurons and examine their strfs
             all_units_strfs = np.zeros((hidden_size, tau, h, w))
+            test = to_torch(test, device)
             for j in range(hidden_size):
-                response = hidden[:, :, j] # test_size, seq_len
-                strfs = torch.zeros((tau, h * w)).to(device)
-                for k in range(tau, seq_len):
-                    # get the response at the current step
-                    res = response[:, k].unsqueeze(-1).repeat(1, tau).unsqueeze(-1) # (test_size, tau, 1)
+                t1 = time.time()
+                response = hidden[:, :, j].to(device) # test_size, seq_len
 
-                    # res = response[:, k-tau:k].unsqueeze(-1)
+                res = response[:, tau:seq_len].repeat_interleave(tau, dim=1).unsqueeze(-1).reshape((test_size, seq_len-tau, tau, 1)) # (test_size, (seq_len-tau), tau, 1)
+                stim = test.permute((0, 2, 1)).unfold(dimension=2, size=tau, step=1)[:,:,:-1].reshape((test_size, h * w, -1)).permute((0, 2, 1)).reshape((test_size, seq_len-tau, tau, h * w)) # (test_size, (seq_len-tau), tau, h*w)
+                t2 = time.time()
+                print(f'1st period: {t2 - t1}')
+                # strfs = to_np(torch.mean(res * stim, dim=(0, 1)).reshape((-1, h, w))) # (tau, h, w)
+                strfs = to_np(torch.einsum('abcd,abcd->cd', res, stim) / (test_size * (seq_len - tau))).reshape((-1, h, w))
+                print(f'2nd period: {time.time() - t2}')
+
+                # strfs = torch.zeros((tau, h * w)).to(device)
+                # for k in range(tau, seq_len):
+                #     # get the response at the current step
+                #     res = response[:, k].unsqueeze(-1).repeat(1, tau).unsqueeze(-1) # (test_size, tau, 1)
     
-                    # weight the preceding stimuli with these response
-                    preceding_stim = to_torch(test[:, k-tau:k], device) # (test_size, tau, (h*w))
-                    weighted_preceding_stim = res * preceding_stim # (test_size, tau, (h*w))
+                #     # weight the preceding stimuli with these response
+                #     preceding_stim = test[:, k-tau:k] # (test_size, tau, (h*w))
+                #     weighted_preceding_stim = res * preceding_stim # (test_size, tau, (h*w))
 
-                    # average the strf along the batch dimension
-                    strfs += weighted_preceding_stim.mean(dim=0) # (tau, h*w)
+                #     # average the strf along the batch dimension
+                #     strfs += weighted_preceding_stim.mean(dim=0) # (tau, h*w)
 
-                strfs /= (seq_len - tau) # tau, (h*w)
-                strfs = to_np(strfs.reshape((-1, h, w)))
+                # strfs /= (seq_len - tau) # tau, (h*w)
+                # strfs = to_np(strfs.reshape((-1, h, w)))
+
                 all_units_strfs[j] = strfs
             _plot_strf(all_units_strfs, tau, result_path, hidden_size)
 
@@ -249,4 +257,6 @@ def main(args):
         json.dump(args.__dict__, f, indent=2)
 
 if __name__ == "__main__":
+    start_time = time.time()
     main(args)
+    print(f'Completed, total time: {time.time() - start_time}')
