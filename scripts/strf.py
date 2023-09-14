@@ -133,7 +133,7 @@ def main(args):
     tPC = MultilayertPC(hidden_size, h * w, nonlin).to(device)
     # apply lr decay
     optimizer = torch.optim.Adam(tPC.parameters(), lr=learn_lr)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.999)
 
     # Train model
     if STA == 'False':
@@ -145,7 +145,7 @@ def main(args):
             os.makedirs(result_path)
 
         # processing data
-        d_path = "data/nat_data/nat_16x16x50.npy"
+        d_path = "./nat_data/nat_16x16x50.npy"
         movie = np.load(d_path, mmap_mode='r+') # mmap to disk?
         train = movie[:train_size].reshape((train_size, -1, h, w))
 
