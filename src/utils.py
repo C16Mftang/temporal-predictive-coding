@@ -27,7 +27,7 @@ class Linear(nn.Module):
     def deriv(self, inp):
         return torch.ones((1,)).to(inp.device)
 
-def train_batched_input(model, optimizer, loader, learn_iters, inf_iters, inf_lr, sparseW, sparsez, device):
+def train_batched_input(model, optimizer, scheduler, loader, learn_iters, inf_iters, inf_lr, sparseW, sparsez, device):
     """Function to train tPC with batched inputs;"""
     train_losses = []
     start_time = time.time()
@@ -77,6 +77,7 @@ def train_batched_input(model, optimizer, loader, learn_iters, inf_iters, inf_lr
                 pbar.update(batch_size)
 
             train_losses.append(epoch_loss)
+            scheduler.step()
             # val_losses.append(val_loss)
             # if (learn_iter + 1) % 10 == 0:
             #     print(f'Epoch {learn_iter+1}, train loss {epoch_loss}')
