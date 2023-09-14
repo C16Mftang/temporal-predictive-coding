@@ -147,7 +147,7 @@ def main(args):
             os.makedirs(result_path)
 
         # processing data
-        d_path = "data/nat_data/nat_16x16x50.npy"
+        d_path = "./nat_data/nat_16x16x50.npy"
         movie = np.load(d_path, mmap_mode='r+') # mmap to disk?
         train = movie[:train_size].reshape((train_size, -1, h, w))
 
