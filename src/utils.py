@@ -56,7 +56,7 @@ def train_batched_input(model, optimizer, scheduler, loader, learn_iters, inf_it
 
                     # add sparse constraint
                     if sparseW is not None:
-                        l1_norm = sum(torch.linalg.norm(p, 1) for p in model.parameters())
+                        l1_norm = torch.linalg.norm(model.Wout.weight, 1)
                         energy += sparseW * l1_norm
                         
                     energy.backward()
