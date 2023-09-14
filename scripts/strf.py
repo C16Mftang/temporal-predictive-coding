@@ -65,20 +65,24 @@ def _plot_inf_losses(inf_losses, result_path):
 
 def _plot_strf(all_strfs, tau, result_path, hidden_size, n_files=20):
     n_units_per_file = hidden_size // n_files
+    strf_min, strf_max = np.min(all_strfs), np.max(all_strfs)
     for f in range(n_files):
         strfs = all_strfs[f*n_units_per_file:(f+1)*n_units_per_file] # n_units_per_file, tau
         fig, ax = plt.subplots(n_units_per_file, tau, figsize=(tau//2, n_units_per_file//2))
         for i in range(n_units_per_file):
             # normalize the filters
             rf = strfs[i]
-            # rf = (rf - np.min(rf)) / (np.max(rf) - np.min(rf))
-            # rf = 2 * rf - 1
+            rf = (rf - np.min(rf)) / (np.max(rf) - np.min(rf))
+            rf = 2 * rf - 1
             strf_min, strf_max = np.min(rf), np.max(rf)
-            ax[i, 0].set_title(f'Neuron {(i + 1) + (n_units_per_file * f)}')
+            ax[i, 0].set_ylabel(f'#{(i + 1) + (n_units_per_file * f)}', fontsize=8)
             for j in range(tau):
                 ax[i, j].imshow(rf[j], cmap='gray', vmin=strf_min, vmax=strf_max)
-                ax[i, j].axis('off')
-        # fig.tight_layout()
+                ax[i, j].get_xaxis().set_ticks([])
+                ax[i, j].get_yaxis().set_ticks([])
+                if i == 0:
+                    ax[i, j].set_title(f't - {tau-j}', fontsize=10)
+        fig.tight_layout()
         plt.savefig(result_path + f'/strf_group{f+1}')
         plt.close()
 
@@ -129,7 +133,9 @@ def main(args):
 
     # initialize model
     tPC = MultilayertPC(hidden_size, h * w, nonlin).to(device)
+    # apply lr decay
     optimizer = torch.optim.Adam(tPC.parameters(), lr=learn_lr)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
 
     # Train model
     if STA == 'False':
@@ -149,7 +155,7 @@ def main(args):
         train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
 
         # train model                                
-        train_losses = train_batched_input(tPC, optimizer, train_loader, learn_iters, inf_iters, inf_lr, sparseW, sparsez, device)
+        train_losses = train_batched_input(tPC, optimizer, scheduler, train_loader, learn_iters, inf_iters, inf_lr, sparseW, sparsez, device)
         torch.save(tPC.state_dict(), os.path.join(result_path, f'model.pt'))
         _plot_train_loss(train_losses, result_path)
 
@@ -176,7 +182,7 @@ def main(args):
             Wr = tPC.Wr.weight
             _plot_weights(Wr, Wout, hidden_size, h, w, result_path)
 
-            test_size = 100
+            test_size = 1000
             # create test data from unseen set
             if infer_with == 'test':
                 d_path = "data/nat_data/nat_16x16x50.npy"
