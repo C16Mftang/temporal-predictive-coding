@@ -30,7 +30,6 @@ class Linear(nn.Module):
 def train_batched_input(model, optimizer, scheduler, loader, learn_iters, inf_iters, inf_lr, sparseW, sparsez, device):
     """Function to train tPC with batched inputs;"""
     train_losses = []
-    start_time = time.time()
     for learn_iter in range(learn_iters):
         epoch_loss = 0
 
@@ -82,5 +81,4 @@ def train_batched_input(model, optimizer, scheduler, loader, learn_iters, inf_it
             # if (learn_iter + 1) % 10 == 0:
             #     print(f'Epoch {learn_iter+1}, train loss {epoch_loss}')
 
-    print(f'training PC complete, time: {time.time() - start_time}')
     return train_losses
