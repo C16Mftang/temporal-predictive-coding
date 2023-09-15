@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 from src.models import TemporalPC, MultilayertPC
 from src.utils import *
+from src.get_data import get_nat_movie
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(device)
@@ -18,6 +19,8 @@ print(device)
 # training parameters as command line arguments
 parser = argparse.ArgumentParser(description='Spatio-temporal receptive fields')
 
+parser.add_argument('--datapath', type=str,
+                    help='path to nat data, must specify')
 parser.add_argument('--train-size', type=int, default=100000, 
                     help='training size')
 parser.add_argument('--batch-size', type=int, default=10000, 
@@ -30,7 +33,7 @@ parser.add_argument('--learn-iters', type=int, default=100,
                     help='number of epochs to train')
 parser.add_argument('--inf-lr', type=float, default=1e-2,
                     help='inference step size')
-parser.add_argument('--inf-iters', type=int, default=50,
+parser.add_argument('--inf-iters', type=int, default=20,
                     help='inference steps in each training epoch')
 parser.add_argument('--sparseW', type=float, default=2.0,
                     help='spasity level for model parameters')
@@ -112,6 +115,7 @@ def main(args):
     seq_len = 50
 
     # hyperparameters
+    datapath = args.datapath
     train_size = args.train_size
     batch_size = args.batch_size
     hidden_size = args.hidden_size
@@ -145,9 +149,11 @@ def main(args):
             os.makedirs(result_path)
 
         # processing data
-        d_path = "./nat_data/nat_16x16x50.npy"
-        movie = np.load(d_path, mmap_mode='r+') # mmap to disk?
-        train = movie[:train_size].reshape((train_size, -1, h, w))
+        train = get_nat_movie(datapath, train_size).reshape((train_size, -1, h, w))
+        
+        # d_path = "data/nat_data/nat_16x16x50.npy"
+        # movie = np.load(d_path, mmap_mode='r+') # mmap to disk?
+        # train = movie[:train_size].reshape((train_size, -1, h, w))
 
         # make training data a dataloader
         train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)

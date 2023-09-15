@@ -8,6 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 import random
 import numpy as np
 import math
+import os
 
 class DataWrapper(Dataset):
     """
@@ -29,7 +30,29 @@ class DataWrapper(Dataset):
     
     def __getitem__(self, idx):
         return self.features[idx], []
+
+def get_nat_movie(datapath, train_size, thresh=0.5):
+    """
+    Function to load Seb's natural movie data
+
+    Inputs:
+        datapath: specifies the directory containing the npy file
+
+        train_size: number of movies used for training
+
+        thresh: the threshold determining the dynamical level of the movies
+    """
+    d_path = os.path.join(datapath, 'nat_16x16x50.npy')
+    movie = np.load(d_path, mmap_mode='r+')
+
+    # select the most dynamical ones with thresh
+    diff = np.diff(movie, axis=1)
+    ms_diff = np.power(diff, 2).mean(axis=(1, 2))
+    dynamic_ind = (ms_diff >= 0.5).nonzero()[0]
+    dynamic_movie = movie[dynamic_ind]
+    train = dynamic_movie[:train_size]
     
+    return train
 
 def get_seq_mnist(datapath, seq_len, sample_size, batch_size, seed, device):
     """Get batches of sequence mnist
