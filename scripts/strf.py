@@ -137,7 +137,7 @@ def main(args):
     tPC = MultilayertPC(hidden_size, h * w, nonlin).to(device)
     # apply lr decay
     optimizer = torch.optim.Adam(tPC.parameters(), lr=learn_lr)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.999)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.8)
 
     # Train model
     if STA == 'False':
