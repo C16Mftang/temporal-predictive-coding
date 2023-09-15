@@ -180,8 +180,8 @@ def main(args):
             Wr = tPC.Wr.weight
             _plot_weights(Wr, Wout, hidden_size, h, w, result_path)
 
-            test_size = 1000
-            test_seq_len = 100
+            test_size = 10000
+            test_seq_len = 50
             seq_len = test_seq_len
             # create test data from unseen set
             if infer_with == 'test':
@@ -226,28 +226,20 @@ def main(args):
                 t1 = time.time()
                 response = hidden[:, :, j].to(device) # test_size, seq_len
 
-                res = response[:, tau:seq_len].repeat_interleave(tau, dim=1).unsqueeze(-1).reshape((test_size, seq_len-tau, tau, 1)) # (test_size, (seq_len-tau), tau, 1)
-                stim = test.permute((0, 2, 1)).unfold(dimension=2, size=tau, step=1)[:,:,:-1].reshape((test_size, h * w, -1)).permute((0, 2, 1)).reshape((test_size, seq_len-tau, tau, h * w)) # (test_size, (seq_len-tau), tau, h*w)
-                t2 = time.time()
-                print(f'1st period: {t2 - t1}')
-                # strfs = to_np(torch.mean(res * stim, dim=(0, 1)).reshape((-1, h, w))) # (tau, h, w)
-                strfs = to_np(torch.einsum('abcd,abcd->cd', res, stim) / (test_size * (seq_len - tau))).reshape((-1, h, w))
-                print(f'2nd period: {time.time() - t2}')
-
-                # strfs = torch.zeros((tau, h * w)).to(device)
-                # for k in range(tau, seq_len):
-                #     # get the response at the current step
-                #     res = response[:, k].unsqueeze(-1).repeat(1, tau).unsqueeze(-1) # (test_size, tau, 1)
+                strfs = torch.zeros((tau, h * w)).to(device)
+                for k in range(tau, seq_len):
+                    # get the response at the current step
+                    res = response[:, k].unsqueeze(-1).repeat(1, tau).unsqueeze(-1) # (test_size, tau, 1)
     
-                #     # weight the preceding stimuli with these response
-                #     preceding_stim = test[:, k-tau:k] # (test_size, tau, (h*w))
-                #     weighted_preceding_stim = res * preceding_stim # (test_size, tau, (h*w))
+                    # weight the preceding stimuli with these response
+                    preceding_stim = test[:, k-tau:k] # (test_size, tau, (h*w))
+                    weighted_preceding_stim = res * preceding_stim # (test_size, tau, (h*w))
 
-                #     # average the strf along the batch dimension
-                #     strfs += weighted_preceding_stim.mean(dim=0) # (tau, h*w)
+                    # average the strf along the batch dimension
+                    strfs += weighted_preceding_stim.mean(dim=0) # (tau, h*w)
 
-                # strfs /= (seq_len - tau) # tau, (h*w)
-                # strfs = to_np(strfs.reshape((-1, h, w)))
+                strfs /= (seq_len - tau) # tau, (h*w)
+                strfs = to_np(strfs.reshape((-1, h, w)))
 
                 all_units_strfs[j] = strfs
             _plot_strf(all_units_strfs, tau, result_path, hidden_size)
