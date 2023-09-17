@@ -27,7 +27,8 @@ class Linear(nn.Module):
     def deriv(self, inp):
         return torch.ones((1,)).to(inp.device)
 
-def train_batched_input(model, optimizer, scheduler, loader, learn_iters, inf_iters, inf_lr, sparseW, sparsez, device):
+def train_batched_input(model, optimizer, scheduler, loader, 
+    learn_iters, inf_iters, inf_lr, sparseWout, sparseWr, sparsez, device):
     """Function to train tPC with batched inputs;"""
     train_losses = []
     for learn_iter in range(learn_iters):
@@ -54,9 +55,8 @@ def train_batched_input(model, optimizer, scheduler, loader, learn_iters, inf_it
                     energy = model.get_energy(x, prev)
 
                     # add sparse constraint
-                    if sparseW is not None:
-                        l1_norm = torch.linalg.norm(model.Wout.weight, 1)
-                        energy += sparseW * l1_norm
+                    l1_norm = sparseWout * torch.linalg.norm(model.Wout.weight, 1) + sparseWr * torch.linalg.norm(model.Wr.weight, 1)
+                    energy += l1_norm
                         
                     energy.backward()
                     optimizer.step()

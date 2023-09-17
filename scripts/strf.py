@@ -35,9 +35,11 @@ parser.add_argument('--inf-lr', type=float, default=1e-2,
                     help='inference step size')
 parser.add_argument('--inf-iters', type=int, default=20,
                     help='inference steps in each training epoch')
-parser.add_argument('--sparseW', type=float, default=2.0,
-                    help='spasity level for model parameters')
-parser.add_argument('--sparsez', type=float, default=2.0,
+parser.add_argument('--sparseWout', type=float, default=2.0,
+                    help='spasity level for hierarchical weight')
+parser.add_argument('--sparseWr', type=float, default=2.0,
+                    help='spasity level for recurrent weight')
+parser.add_argument('--sparsez', type=float, default=0.5,
                     help='spasity level for hidden activities')
 parser.add_argument('--STA', type=str, default='False', choices=['False', 'True'],
                     help='whether to perform STA')       
@@ -87,7 +89,7 @@ def _plot_strf(all_strfs, tau, result_path, hidden_size, n_files=20):
                 if i == 0:
                     ax[i, j].set_title(f't - {tau-j}', fontsize=10)
         fig.tight_layout()
-        plt.savefig(result_path + f'/strf_group{f+1}')
+        plt.savefig(result_path + f'/strf_group{f+1}', dpi=200)
         plt.close()
 
 def _plot_weights(Wr, Wout, hidden_size, h, w, result_path):
@@ -103,12 +105,14 @@ def _plot_weights(Wr, Wout, hidden_size, h, w, result_path):
     # fig.tight_layout()
     plt.savefig(result_path + '/Wout', dpi=200)
 
-    # d = int(np.sqrt(hidden_size))
-    # fig, axes = plt.subplots(hidden_size // 32, 32, figsize=(8, 8))
-    # for i, ax in enumerate(axes.flatten()):
-    #     ax.imshow(to_np(Wr)[:, i].reshape((d, d)), cmap='gray')
-    #     ax.axis('off')
-    # plt.savefig(result_path + '/Wr')
+    # plot Wr
+    Wr = to_np(Wr)
+    Wmin, Wmax = np.min(Wr), np.max(Wr)
+    d = int(np.sqrt(hidden_size))
+    plt.figure()
+    plt.imshow(Wr)
+    plt.colorbar()
+    plt.savefig(result_path + '/Wr', dpi=200)
 
 def main(args):
     h, w = 16, 16
@@ -123,7 +127,8 @@ def main(args):
     learn_iters = args.learn_iters
     inf_lr = args.inf_lr
     inf_iters = args.inf_iters
-    sparseW = args.sparseW
+    sparseWout = args.sparseWout
+    sparseWr = args.sparseWr
     sparsez = args.sparsez
     nonlin = args.nonlin
 
@@ -137,7 +142,7 @@ def main(args):
     tPC = MultilayertPC(hidden_size, h * w, nonlin).to(device)
     # apply lr decay
     optimizer = torch.optim.Adam(tPC.parameters(), lr=learn_lr)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.8)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=1)
 
     # Train model
     if STA == 'False':
@@ -159,7 +164,8 @@ def main(args):
         train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
 
         # train model                                
-        train_losses = train_batched_input(tPC, optimizer, scheduler, train_loader, learn_iters, inf_iters, inf_lr, sparseW, sparsez, device)
+        train_losses = train_batched_input(tPC, optimizer, scheduler, train_loader, 
+                                           learn_iters, inf_iters, inf_lr, sparseWout, sparseWr, sparsez, device)
         torch.save(tPC.state_dict(), os.path.join(result_path, f'model.pt'))
         _plot_train_loss(train_losses, result_path)
 
