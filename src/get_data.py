@@ -31,7 +31,7 @@ class DataWrapper(Dataset):
     def __getitem__(self, idx):
         return self.features[idx], []
 
-def get_nat_movie(datapath, train_size, thresh=0.5):
+def get_nat_movie(datapath, train_size):
     """
     Function to load Seb's natural movie data
 
@@ -42,15 +42,10 @@ def get_nat_movie(datapath, train_size, thresh=0.5):
 
         thresh: the threshold determining the dynamical level of the movies
     """
-    d_path = os.path.join(datapath, 'nat_16x16x50.npy')
+    d_path = os.path.join(datapath, 'nat_dynamic.npy')
     movie = np.load(d_path, mmap_mode='r+')
-
-    # select the most dynamical ones with thresh
-    diff = np.diff(movie, axis=1)
-    ms_diff = np.power(diff, 2).mean(axis=(1, 2))
-    dynamic_ind = (ms_diff >= 0.5).nonzero()[0]
-    dynamic_movie = movie[dynamic_ind]
-    train = dynamic_movie[:train_size]
+    print(movie.shape)
+    train = movie[:train_size]
     
     return train
 
