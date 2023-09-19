@@ -110,8 +110,8 @@ def _plot_weights(Wr, Wout, hidden_size, h, w, result_path):
         f = Wout[:, i]
         im = ax.imshow(f.reshape((h, w)), cmap='gray', vmin=Wmin, vmax=Wmax)
         ax.axis('off')
-    fig.colorbar(im, ax=axes.ravel().tolist())
-    # fig.tight_layout()
+    # fig.colorbar(im, ax=axes.ravel().tolist())
+    fig.tight_layout()
     plt.savefig(result_path + '/Wout', dpi=200)
 
     # plot Wr
