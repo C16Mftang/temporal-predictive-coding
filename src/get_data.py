@@ -49,6 +49,50 @@ def get_nat_movie(datapath, train_size):
     
     return train
 
+def get_moving_blobs(movie_num, frame_num, h, w):
+    """Function to generate moving Gaussian blobs"""
+    def _gaussian_blob(x, y, x0, y0, sigma_x, sigma_y, rho):
+        inv_cov = np.linalg.inv([[sigma_x**2, rho*sigma_x*sigma_y], [rho*sigma_x*sigma_y, sigma_y**2]])
+        a = inv_cov[0, 0]
+        b = inv_cov[0, 1]
+        c = inv_cov[1, 1]
+        z = a*(x-x0)**2 + 2*b*(x-x0)*(y-y0) + c*(y-y0)**2
+        return np.exp(-0.5 * z)
+
+    def _initialize_frame(h, w, sigma_x, sigma_y, rho):
+        x0, y0 = np.random.randint(0, w), np.random.randint(0, h)
+        x, y = np.meshgrid(np.arange(w), np.arange(h))
+        frame = _gaussian_blob(x, y, x0, y0, sigma_x, sigma_y, rho)
+        angle = np.random.uniform(0, 2 * np.pi)
+        return frame, (x0, y0), angle
+
+    def _move_blob(frame, center, angle, velocity, sigma_x, sigma_y, rho):
+        h, w = frame.shape
+        dx = int(velocity * np.cos(angle))
+        dy = int(velocity * np.sin(angle))
+        new_center = (center[0] + dx, center[1] + dy)
+        x, y = np.meshgrid(np.arange(w), np.arange(h))
+        new_frame = _gaussian_blob(x, y, new_center[0], new_center[1], sigma_x, sigma_y, rho)
+        return new_frame, new_center
+
+    movies = np.zeros((movie_num, frame_num, h, w))
+    velocity = 1.5 # fix the velocity for all movies
+
+    for i in range(movie_num):
+        # Randomize sigma_x, sigma_y, and rho for each movie
+        sigma_x = np.random.uniform(1.0, 3.0)
+        sigma_y = np.random.uniform(1.0, 3.0)
+        rho = np.random.uniform(-0.9, 0.9)  # Keeping rho in this range to ensure the covariance matrix is positive definite
+
+        frame, center, angle = _initialize_frame(h, w, sigma_x, sigma_y, rho)
+        movies[i, 0] = frame
+        for j in range(1, frame_num):
+            frame, center = _move_blob(frame, center, angle, velocity, sigma_x, sigma_y, rho)
+            movies[i, j] = frame
+
+    return movies
+
+
 def get_seq_mnist(datapath, seq_len, sample_size, batch_size, seed, device):
     """Get batches of sequence mnist
     

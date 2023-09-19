@@ -11,18 +11,19 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 from src.models import TemporalPC, MultilayertPC
 from src.utils import *
-from src.get_data import get_nat_movie
-
-device = "cuda" if torch.cuda.is_available() else "cpu"
-print(device)
+from src.get_data import get_nat_movie, get_moving_blobs
 
 # training parameters as command line arguments
 parser = argparse.ArgumentParser(description='Spatio-temporal receptive fields')
 
-parser.add_argument('--datapath', type=str,
-                    help='path to nat data, must specify')
+parser.add_argument('--datapath', type=str, default='nat_data', choices=['nat_data', 'data/nat_data', 'blobs'],
+                    help='path to nat data or to use Gaussian blobs, must specify')
 parser.add_argument('--train-size', type=int, default=100000, 
                     help='training size')
+parser.add_argument('--test-size', type=int, default=10000, 
+                    help='test size')
+parser.add_argument('--test-seq-len', type=int, default=50, 
+                    help='test sequence length')
 parser.add_argument('--batch-size', type=int, default=10000, 
                     help='training batch size')
 parser.add_argument('--hidden-size', type=int, default=1024,
@@ -35,6 +36,10 @@ parser.add_argument('--inf-lr', type=float, default=1e-2,
                     help='inference step size')
 parser.add_argument('--inf-iters', type=int, default=20,
                     help='inference steps in each training epoch')
+parser.add_argument('--inf-lr-test', type=float, default=2e-2,
+                    help='inference step size during testing')
+parser.add_argument('--inf-iters-test', type=int, default=100,
+                    help='inference steps in each training epoch during testing')
 parser.add_argument('--sparseWout', type=float, default=2.0,
                     help='spasity level for hierarchical weight')
 parser.add_argument('--sparseWr', type=float, default=2.0,
@@ -115,6 +120,9 @@ def _plot_weights(Wr, Wout, hidden_size, h, w, result_path):
     plt.savefig(result_path + '/Wr', dpi=200)
 
 def main(args):
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(device)
+
     h, w = 16, 16
     seq_len = 50
 
@@ -137,12 +145,14 @@ def main(args):
     std = args.std
     tau = args.tau
     infer_with = args.infer_with
+    inf_iters_test = args.inf_iters_test
+    inf_lr_test = args.inf_lr_test
 
     # initialize model
     tPC = MultilayertPC(hidden_size, h * w, nonlin).to(device)
     # apply lr decay
     optimizer = torch.optim.Adam(tPC.parameters(), lr=learn_lr)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=1)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.95)
 
     # Train model
     if STA == 'False':
@@ -154,11 +164,10 @@ def main(args):
             os.makedirs(result_path)
 
         # processing data
-        train = get_nat_movie(datapath, train_size).reshape((train_size, -1, h, w))
-        
-        # d_path = "data/nat_data/nat_16x16x50.npy"
-        # movie = np.load(d_path, mmap_mode='r+') # mmap to disk?
-        # train = movie[:train_size].reshape((train_size, -1, h, w))
+        if datapath == 'blobs':
+            train = get_moving_blobs(train_size, 10, h, w).astype(np.float16)
+        else:
+            train = get_nat_movie(datapath, train_size).reshape((train_size, -1, h, w))
 
         # make training data a dataloader
         train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
@@ -182,7 +191,9 @@ def main(args):
         if not os.path.exists(result_path):
             raise Exception("Specified model not found!")
         else:
-            # load the model
+            # initialize model
+            tPC = MultilayertPC(hidden_size, h * w, nonlin).to(device)
+            # load a trained model
             tPC.load_state_dict(torch.load(os.path.join(result_path, f'model.pt'), 
                                            map_location=torch.device(device)))
             tPC.eval()
@@ -192,17 +203,17 @@ def main(args):
             Wr = tPC.Wr.weight
             _plot_weights(Wr, Wout, hidden_size, h, w, result_path)
 
-            test_size = 10000
-            test_seq_len = 50
-            seq_len = test_seq_len
             # create test data from unseen set
             if infer_with == 'test':
+                test_size = 1000
                 d_path = "data/nat_data/nat_16x16x50.npy"
                 movie = np.load(d_path, mmap_mode='r+') # mmap to disk?
                 test = movie[train_size:train_size+test_size]
 
             # create white noise stimuli
             elif infer_with == 'white noise':
+                test_size = args.test_size
+                seq_len = args.test_seq_len
                 g = torch.Generator()
                 g.manual_seed(1)
                 white_noise = (torch.rand((test_size, seq_len, h * w), generator=g) < 0.5).to(device, torch.float32)
@@ -212,10 +223,7 @@ def main(args):
                 test = to_np(white_noise)
 
             # perform inference on the white noise stimuli
-            inf_iters_test = 100
-            inf_lr_test = 5e-2
-
-            # initialize the hidden activities; batch size is 1 as we are interested in one sequence only
+            # initialize the hidden activities
             prev = tPC.init_hidden(test_size).to(device)
 
             # avrage hidden activities across test movies
