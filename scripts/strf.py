@@ -46,6 +46,10 @@ parser.add_argument('--sparseWr', type=float, default=2.0,
                     help='spasity level for recurrent weight')
 parser.add_argument('--sparsez', type=float, default=0.5,
                     help='spasity level for hidden activities')
+parser.add_argument('--lr-decay-step', type=int, default=50,
+                    help='step size for lr decay')
+parser.add_argument('--lr-decay-rate', type=float, default=0.5,
+                    help='rate of decaying lr')
 parser.add_argument('--STA', type=str, default='False', choices=['False', 'True'],
                     help='whether to perform STA')       
 parser.add_argument('--std', type=float, default=3.,
@@ -139,6 +143,8 @@ def main(args):
     sparseWr = args.sparseWr
     sparsez = args.sparsez
     nonlin = args.nonlin
+    decay_step_size = args.lr_decay_step
+    decay_rate = args.lr_decay_rate
 
     # inference hyperparameters
     STA = args.STA
@@ -152,7 +158,7 @@ def main(args):
     tPC = MultilayertPC(hidden_size, h * w, nonlin).to(device)
     # apply lr decay
     optimizer = torch.optim.Adam(tPC.parameters(), lr=learn_lr)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.95)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=decay_step_size, gamma=decay_rate)
 
     # Train model
     if STA == 'False':
