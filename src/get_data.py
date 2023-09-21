@@ -49,7 +49,7 @@ def get_nat_movie(datapath, train_size):
     
     return train
 
-def get_moving_blobs(movie_num, frame_num, h, w):
+def get_moving_blobs(movie_num, frame_num, h, w, velocity):
     """Function to generate moving Gaussian blobs"""
     def _gaussian_blob(x, y, x0, y0, sigma_x, sigma_y, rho):
         inv_cov = np.linalg.inv([[sigma_x**2, rho*sigma_x*sigma_y], [rho*sigma_x*sigma_y, sigma_y**2]])
@@ -88,7 +88,7 @@ def get_moving_blobs(movie_num, frame_num, h, w):
         return new_frame, new_center, angle  # Return the updated angle
 
     movies = np.zeros((movie_num, frame_num, h, w))
-    velocity = 1.5 # fix the velocity for all movies
+    # velocity = 1.5 # fix the velocity for all movies
 
     for i in range(movie_num):
         sigma_x = np.random.uniform(1.0, 3.0)

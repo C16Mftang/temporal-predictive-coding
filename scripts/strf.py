@@ -60,6 +60,8 @@ parser.add_argument('--nonlin', type=str, default='linear', choices=['linear', '
                     help='nonlinearity') 
 parser.add_argument('--infer-with', type=str, default='white noise', choices=['white noise', 'test'],
                     help='data on which the inference is performed')
+parser.add_argument('--blob-velocity', type=float, default=1.5,
+                    help='velocity of gaussian blobs when using them')    
 
 args = parser.parse_args()
 
@@ -145,6 +147,7 @@ def main(args):
     nonlin = args.nonlin
     decay_step_size = args.lr_decay_step
     decay_rate = args.lr_decay_rate
+    blob_velocity = args.blob_velocity
 
     # inference hyperparameters
     STA = args.STA
@@ -171,7 +174,7 @@ def main(args):
 
         # processing data
         if datapath == 'blobs':
-            train = get_moving_blobs(train_size, 10, h, w).astype(np.float16)
+            train = get_moving_blobs(train_size, 10, h, w, blob_velocity).astype(np.float16)
         else:
             train = get_nat_movie(datapath, train_size).reshape((train_size, -1, h, w))
 
@@ -222,10 +225,10 @@ def main(args):
                 seq_len = args.test_seq_len
                 g = torch.Generator()
                 g.manual_seed(1)
-                white_noise = (torch.rand((test_size, seq_len, h * w), generator=g) < 0.5).to(device, torch.float32)
-                # convert them to -1 and 1s
-                white_noise = std * (white_noise * 2 - 1)
-                # white_noise = torch.randn((test_size, seq_len, h * w), generator=g).to(device, torch.float32) * std
+                # white_noise = (torch.rand((test_size, seq_len, h * w), generator=g) < 0.5).to(device, torch.float32)
+                # # convert them to -1 and 1s
+                # white_noise = std * (white_noise * 2 - 1)
+                white_noise = torch.randn((test_size, seq_len, h * w), generator=g).to(device, torch.float32) * std
                 test = to_np(white_noise)
 
             # perform inference on the white noise stimuli
@@ -258,7 +261,7 @@ def main(args):
                     res = response[:, k].unsqueeze(-1).repeat(1, tau).unsqueeze(-1) # (test_size, tau, 1)
     
                     # weight the preceding stimuli with these response
-                    preceding_stim = test[:, k-tau:k] # (test_size, tau, (h*w))
+                    preceding_stim = test[:, k-tau+1:k+1] # (test_size, tau, (h*w))
                     weighted_preceding_stim = res * preceding_stim # (test_size, tau, (h*w))
 
                     # average the strf along the batch dimension
