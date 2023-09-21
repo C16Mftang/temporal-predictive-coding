@@ -288,8 +288,8 @@ class MultilayertPC(nn.Module):
         return nn.init.kaiming_uniform_(torch.empty(bsz, self.hidden_size))
     
     def get_hidden(self):
-        return self.z.clone().detach()
-
+        return self.z.clone()
+    
     def get_inf_losses(self):
         return torch.tensor(self.inf_losses) # inf_iters,
 
