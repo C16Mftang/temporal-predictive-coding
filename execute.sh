@@ -10,7 +10,7 @@
 # set gpu 
 #SBATCH --gres=gpu:1
 # qos
-#SBATCH --qos=standard
+#SBATCH --qos=basic
 #SBATCH --account=ndcn-computational-neuroscience
 # change the location of the .out file
 #SBATCH --output=/data/ndcn-computational-neuroscience/scro4155/temporal-pc/output/%j.out
