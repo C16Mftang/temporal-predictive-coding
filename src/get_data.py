@@ -103,6 +103,43 @@ def get_moving_blobs(movie_num, frame_num, h, w, velocity):
 
     return movies
 
+def get_moving_bars(movie_num, frame_num, h, w, bar_width=2):
+    # Initialize the output array
+    movies = np.zeros((movie_num, frame_num, h, w), dtype=np.float32)
+
+    for movie_idx in range(movie_num):
+        # randiomly select velocity
+        velocity = np.random.randint(0, 5)
+        # Randomly decide if the bar is horizontal or vertical
+        is_horizontal = np.random.choice([True, False])
+
+        if is_horizontal:
+            bar_pos = np.random.randint(0, h-bar_width)  # Initial position of the bar
+            direction = 1 if np.random.rand() > 0.5 else -1  # Up or down
+        else:
+            bar_pos = np.random.randint(0, w-bar_width)  # Initial position of the bar
+            direction = 1 if np.random.rand() > 0.5 else -1  # Left or right
+
+        for frame_idx in range(frame_num):
+            if is_horizontal:
+                movies[movie_idx, frame_idx, bar_pos:bar_pos+bar_width, 1:-1] = 1.0
+                bar_pos += direction * velocity
+
+                # Bounce back if the bar hits the border
+                if bar_pos <= 0 or bar_pos >= h-bar_width:
+                    direction = -direction
+                    bar_pos += direction * velocity
+            else:
+                movies[movie_idx, frame_idx, 1:-1, bar_pos:bar_pos+bar_width] = 1.0
+                bar_pos += direction * velocity
+
+                # Bounce back if the bar hits the border
+                if bar_pos <= 0 or bar_pos >= w-bar_width:
+                    direction = -direction
+                    bar_pos += direction * velocity
+
+    return movies
+
 
 def get_seq_mnist(datapath, seq_len, sample_size, batch_size, seed, device):
     """Get batches of sequence mnist

@@ -11,12 +11,12 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 from src.models import TemporalPC, MultilayertPC
 from src.utils import *
-from src.get_data import get_nat_movie, get_moving_blobs
+from src.get_data import get_nat_movie, get_moving_blobs, get_moving_bars
 
 # training parameters as command line arguments
 parser = argparse.ArgumentParser(description='Spatio-temporal receptive fields')
 
-parser.add_argument('--datapath', type=str, default='nat_data', choices=['nat_data', 'data/nat_data', 'blobs'],
+parser.add_argument('--datapath', type=str, default='nat_data', choices=['nat_data', 'data/nat_data', 'blobs', 'bar'],
                     help='path to nat data or to use Gaussian blobs, must specify')
 parser.add_argument('--train-size', type=int, default=100000, 
                     help='training size')
@@ -62,6 +62,10 @@ parser.add_argument('--infer-with', type=str, default='white noise', choices=['w
                     help='data on which the inference is performed')
 parser.add_argument('--blob-velocity', type=float, default=1.5,
                     help='velocity of gaussian blobs when using them')    
+parser.add_argument('--hw', type=int, default=16,
+                    help='height and width of the frames, default to 16')
+parser.add_argument('--seq-len', type=int, default=50,
+                    help='sequence length, default to 50')        
 
 args = parser.parse_args()
 
@@ -129,8 +133,8 @@ def main(args):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(device)
 
-    h, w = 16, 16
-    seq_len = 50
+    h, w = args.hw, args.hw
+    seq_len = args.seq_len
 
     # hyperparameters
     datapath = args.datapath
@@ -174,7 +178,9 @@ def main(args):
 
         # processing data
         if datapath == 'blobs':
-            train = get_moving_blobs(train_size, 10, h, w, blob_velocity).astype(np.float16)
+            train = get_moving_blobs(train_size, seq_len, h, w, blob_velocity).astype(np.float16)
+        elif datapath == 'bar':
+            train = get_moving_bars(train_size, seq_len, h, w, bar_width=3).astype(np.float16)
         else:
             train = get_nat_movie(datapath, train_size).reshape((train_size, -1, h, w))
 
