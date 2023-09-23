@@ -38,7 +38,7 @@ parser.add_argument('--inf-iters', type=int, default=20,
                     help='inference steps in each training epoch')
 parser.add_argument('--inf-lr-test', type=float, default=2e-2,
                     help='inference step size during testing')
-parser.add_argument('--inf-iters-test', type=int, default=100,
+parser.add_argument('--inf-iters-test', type=int, default=200,
                     help='inference steps in each training epoch during testing')
 parser.add_argument('--sparseWout', type=float, default=2.0,
                     help='spasity level for hierarchical weight')
@@ -66,6 +66,8 @@ parser.add_argument('--hw', type=int, default=16,
                     help='height and width of the frames, default to 16')
 parser.add_argument('--seq-len', type=int, default=50,
                     help='sequence length, default to 50')        
+parser.add_argument('--unit-id', type=int, default=[], nargs='+',
+                    help='selected unit ids to plot strf')
 
 args = parser.parse_args()
 
@@ -106,6 +108,26 @@ def _plot_strf(all_strfs, tau, result_path, hidden_size, n_files=20):
         fig.tight_layout()
         plt.savefig(result_path + f'/strf_group{f+1}', dpi=200)
         plt.close()
+
+# plot only selected units by id
+def _plot_selected_strf(all_strfs, tau, result_path, hidden_size, selected_ids):
+    selected_strfs = all_strfs[[id - 1 for id in selected_ids]]
+    n_units = len(selected_ids)
+    fig, ax = plt.subplots(n_units, tau, figsize=(tau//2, n_units//2))
+    for i in range(n_units):
+        rf = selected_strfs[i]
+        strf_min, strf_max = -np.max(np.abs(rf)), np.max(np.abs(rf))
+        ax[i, 0].set_ylabel(f'#{selected_ids[i]}', fontsize=8)
+        for j in range(tau):
+            ax[i, j].imshow(rf[j], cmap='gray', vmin=strf_min, vmax=strf_max)
+            ax[i, j].get_xaxis().set_ticks([])
+            ax[i, j].get_yaxis().set_ticks([])
+            if i == 0:
+                ax[i, j].set_title(f't - {tau-j}', fontsize=10)
+    fig.tight_layout()
+    plt.savefig(result_path + f'/strf_selected', dpi=200)
+    plt.close()
+
 
 def _plot_weights(Wr, Wout, hidden_size, h, w, result_path):
     # plot Wout
@@ -254,30 +276,13 @@ def main(args):
                 inf_losses += tPC.get_inf_losses() / seq_len
             _plot_inf_losses(inf_losses, result_path)
 
-            # iterate through neurons and examine their strfs
-            all_units_strfs = np.zeros((hidden_size, tau, h, w))
-            test = to_torch(test, device)
-            for j in range(hidden_size):
-                t1 = time.time()
-                response = hidden[:, :, j].to(device) # test_size, seq_len
-
-                strfs = torch.zeros((tau, h * w)).to(device)
-                for k in range(tau, seq_len):
-                    # get the response at the current step
-                    res = response[:, k].unsqueeze(-1).repeat(1, tau).unsqueeze(-1) # (test_size, tau, 1)
-    
-                    # weight the preceding stimuli with these response
-                    preceding_stim = test[:, k-tau+1:k+1] # (test_size, tau, (h*w))
-                    weighted_preceding_stim = res * preceding_stim # (test_size, tau, (h*w))
-
-                    # average the strf along the batch dimension
-                    strfs += weighted_preceding_stim.mean(dim=0) # (tau, h*w)
-
-                strfs /= (seq_len - tau) # tau, (h*w)
-                strfs = to_np(strfs.reshape((-1, h, w)))
-
-                all_units_strfs[j] = strfs
-            _plot_strf(all_units_strfs, tau, result_path, hidden_size)
+            # compute the STRFs given the hidden activities and test stimuli
+            test = to_torch(test, device)   
+            STRFs = get_strf(hidden, test, tau, device).reshape((hidden_size, tau, h, w))
+            if len(args.unit_id) > 0:
+                _plot_selected_strf(STRFs, tau, result_path, hidden_size, args.unit_id)
+            else:
+                _plot_strf(STRFs, tau, result_path, hidden_size)
 
     param_path = os.path.join(result_path, 'hyperparameters.txt')
     with open(param_path, 'w') as f:

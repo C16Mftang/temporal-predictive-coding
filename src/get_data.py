@@ -109,7 +109,7 @@ def get_moving_bars(movie_num, frame_num, h, w, bar_width=2):
 
     for movie_idx in range(movie_num):
         # randiomly select velocity
-        velocity = np.random.randint(0, 5)
+        velocity = 1
         # Randomly decide if the bar is horizontal or vertical
         is_horizontal = np.random.choice([True, False])
 
