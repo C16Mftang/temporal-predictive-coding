@@ -82,3 +82,37 @@ def train_batched_input(model, optimizer, scheduler, loader,
             #     print(f'Epoch {learn_iter+1}, train loss {epoch_loss}')
 
     return train_losses
+
+def get_strf(hidden, test, tau, device):
+    """
+    hidden: hidden response of the model; test_size, seq_len, hidden_size
+    test: stimuli to input to the model; test_size, seq_len, h*w
+    tau: number of preceding frames
+
+    Output:
+    strfs: hidden_size, tau, h*w
+    """
+    hidden_size = hidden.shape[-1]
+    seq_len = hidden.shape[1]
+    stim_dim = test.shape[-1]
+
+    all_units_strfs = np.zeros((hidden_size, tau, stim_dim))
+    for j in range(hidden_size):
+        response = hidden[:, :, j].to(device) # test_size, seq_len
+
+        strfs = torch.zeros((tau, stim_dim)).to(device)
+        for k in range(tau, seq_len):
+            # get the response at the current step
+            res = response[:, k].unsqueeze(-1).repeat(1, tau).unsqueeze(-1) # (test_size, tau, 1)
+
+            # weight the preceding stimuli with these response
+            preceding_stim = test[:, k-tau+1:k+1] # (test_size, tau, (h*w))
+            weighted_preceding_stim = res * preceding_stim # (test_size, tau, (h*w))
+
+            # average the strf along the batch dimension
+            strfs += weighted_preceding_stim.mean(dim=0) # (tau, h*w)
+
+        strfs /= (seq_len - tau) # tau, (h*w)
+
+        all_units_strfs[j] = to_np(strfs)
+    return all_units_strfs
