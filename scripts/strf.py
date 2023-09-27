@@ -14,7 +14,8 @@ from src.utils import *
 from src.get_data import get_nat_movie, get_moving_blobs, get_moving_bars, get_bar_patches
 
 # training parameters as command line arguments
-parser = argparse.ArgumentParser(description='Spatio-temporal receptive fields')
+parser = argparse.ArgumentParser(description='Spatio-temporal receptive fields',
+                                 fromfile_prefix_chars='@')
 
 parser.add_argument('--datapath', type=str, default='nat_data', choices=['nat_data', 'data/nat_data', 'blobs', 'bar', 'bar_patches'],
                     help='path to nat data or to use Gaussian blobs, must specify')
