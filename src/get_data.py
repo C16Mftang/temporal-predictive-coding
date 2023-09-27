@@ -122,7 +122,7 @@ def get_moving_bars(movie_num, frame_num, h, w, bar_width=2):
 
         for frame_idx in range(frame_num):
             if is_horizontal:
-                movies[movie_idx, frame_idx, bar_pos:bar_pos+bar_width, 1:-1] = 1.0
+                movies[movie_idx, frame_idx, bar_pos:bar_pos+bar_width, :] = 1.0
                 bar_pos += direction * velocity
 
                 # Bounce back if the bar hits the border
@@ -130,7 +130,7 @@ def get_moving_bars(movie_num, frame_num, h, w, bar_width=2):
                     direction = -direction
                     bar_pos += direction * velocity
             else:
-                movies[movie_idx, frame_idx, 1:-1, bar_pos:bar_pos+bar_width] = 1.0
+                movies[movie_idx, frame_idx, :, bar_pos:bar_pos+bar_width] = 1.0
                 bar_pos += direction * velocity
 
                 # Bounce back if the bar hits the border
@@ -139,6 +139,56 @@ def get_moving_bars(movie_num, frame_num, h, w, bar_width=2):
                     bar_pos += direction * velocity
 
     return movies
+
+def get_bar_patches(sample_size, seq_len, h, w):
+    # Variables
+    frame_size = 100
+    num_lines = 30
+    
+    # Initialize the movie with gray background
+    movie = np.zeros((seq_len, frame_size, frame_size))
+    
+    # Define the lines
+    lines = [{'position': np.random.randint(0, frame_size),
+              'color': np.random.choice([-1, 1]),
+              'direction': np.random.choice(['horizontal', 'vertical']),
+              'movement': np.random.choice([-1, 1])} for _ in range(num_lines)]
+    
+    # Draw the lines in the first frame
+    for line in lines:
+        if line['direction'] == 'horizontal':
+            movie[0, line['position'], :] = line['color']
+        else:
+            movie[0, :, line['position']] = line['color']
+    
+    # For each subsequent frame, move the lines
+    for t in range(1, seq_len):
+        for line in lines:
+            if line['direction'] == 'horizontal':
+                new_position = line['position'] + line['movement']
+                # Check for bouncing
+                if new_position < 0 or new_position >= frame_size:
+                    line['movement'] = -line['movement']
+                    new_position = line['position'] + line['movement']
+                line['position'] = new_position
+                movie[t, line['position'], :] = line['color']
+            else:
+                new_position = line['position'] + line['movement']
+                # Check for bouncing
+                if new_position < 0 or new_position >= frame_size:
+                    line['movement'] = -line['movement']
+                    new_position = line['position'] + line['movement']
+                line['position'] = new_position
+                movie[t, :, line['position']] = line['color']
+    
+    # Extract random patches
+    dataset = np.zeros((sample_size, seq_len, h, w))
+    for i in range(sample_size):
+        x = np.random.randint(0, frame_size - w + 1)
+        y = np.random.randint(0, frame_size - h + 1)
+        dataset[i] = movie[:, x:x+w, y:y+h]
+    
+    return dataset
 
 
 def get_seq_mnist(datapath, seq_len, sample_size, batch_size, seed, device):

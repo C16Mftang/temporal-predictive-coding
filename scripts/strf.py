@@ -11,12 +11,12 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 from src.models import TemporalPC, MultilayertPC
 from src.utils import *
-from src.get_data import get_nat_movie, get_moving_blobs, get_moving_bars
+from src.get_data import get_nat_movie, get_moving_blobs, get_moving_bars, get_bar_patches
 
 # training parameters as command line arguments
 parser = argparse.ArgumentParser(description='Spatio-temporal receptive fields')
 
-parser.add_argument('--datapath', type=str, default='nat_data', choices=['nat_data', 'data/nat_data', 'blobs', 'bar'],
+parser.add_argument('--datapath', type=str, default='nat_data', choices=['nat_data', 'data/nat_data', 'blobs', 'bar', 'bar_patches'],
                     help='path to nat data or to use Gaussian blobs, must specify')
 parser.add_argument('--train-size', type=int, default=100000, 
                     help='training size')
@@ -113,7 +113,10 @@ def _plot_strf(all_strfs, tau, result_path, hidden_size, n_files=20):
 def _plot_selected_strf(all_strfs, tau, result_path, hidden_size, selected_ids):
     selected_strfs = all_strfs[[id - 1 for id in selected_ids]]
     n_units = len(selected_ids)
-    fig, ax = plt.subplots(n_units, tau, figsize=(tau//2, n_units//2))
+    if hidden_size < 32:
+        fig, ax = plt.subplots(n_units, tau, figsize=(tau, n_units))
+    else:
+        fig, ax = plt.subplots(n_units, tau, figsize=(tau // 2, n_units // 2))
     for i in range(n_units):
         rf = selected_strfs[i]
         strf_min, strf_max = -np.max(np.abs(rf)), np.max(np.abs(rf))
@@ -133,7 +136,10 @@ def _plot_weights(Wr, Wout, hidden_size, h, w, result_path):
     # plot Wout
     Wout = to_np(Wout)
     Wmin, Wmax = np.min(Wout), np.max(Wout)
-    fig, axes = plt.subplots(hidden_size // 32, 32, figsize=(8, (hidden_size // 32) // 4))
+    if hidden_size < 32:
+        fig, axes = plt.subplots(1, hidden_size, figsize=(hidden_size, 1))
+    else:
+        fig, axes = plt.subplots(hidden_size // 32, 32, figsize=(8, (hidden_size // 32) // 4))
     for i, ax in enumerate(axes.flatten()):
         f = Wout[:, i]
         im = ax.imshow(f.reshape((h, w)), cmap='gray', vmin=Wmin, vmax=Wmax)
@@ -203,6 +209,8 @@ def main(args):
             train = get_moving_blobs(train_size, seq_len, h, w, blob_velocity).astype(np.float16)
         elif datapath == 'bar':
             train = get_moving_bars(train_size, seq_len, h, w, bar_width=3).astype(np.float16)
+        elif datapath == 'bar_patches':
+            train = get_bar_patches(train_size, seq_len, h, w).astype(np.float16)
         else:
             train = get_nat_movie(datapath, train_size).reshape((train_size, -1, h, w))
 
