@@ -155,7 +155,10 @@ def _plot_weights(Wr, Wout, hidden_size, h, w, result_path):
     d = int(np.sqrt(hidden_size))
     plt.figure()
     plt.imshow(Wr)
+    # remove axis of the plot
+    plt.axis('off')
     plt.colorbar()
+    plt.tight_layout()
     plt.savefig(result_path + '/Wr', dpi=200)
 
 def main(args):
