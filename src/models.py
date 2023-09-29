@@ -372,3 +372,68 @@ class MultilayertPC(nn.Module):
         self.obs_loss = torch.sum(err_x**2)
         energy = (self.hidden_loss + self.obs_loss) / bsz
         return energy
+    
+class PredSparseCoding(nn.Module):
+    """
+    Predictive coding implementation of the sparse coding model
+    """
+    def __init__(self, hidden_size, output_size, nonlin='linear'):
+        super(PredSparseCoding, self).__init__()
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+        self.Wout = nn.Linear(hidden_size, output_size, bias=False)
+        if nonlin == 'linear':
+            self.nonlin = Linear()
+        elif nonlin == 'tanh':
+            self.nonlin = Tanh()
+        else:
+            raise ValueError("no such nonlinearity!")
+        
+    def forward(self):
+        return self.Wout(self.nonlin(self.z))
+    
+    def get_hidden(self):
+        return self.z.clone()
+    
+    def get_inf_losses(self):
+        return torch.tensor(self.inf_losses) # inf_iters,
+    
+    def init_hidden(self, bsz):
+        """Initializing the hidden state with batch size bsz"""
+        return nn.init.kaiming_uniform_(torch.empty(bsz, self.hidden_size))
+    
+    def weight_norm(self):
+        # in-place normalization of weight parameters
+        with torch.no_grad():
+            self.Wout.weight.div_(torch.norm(self.Wout.weight, dim=0, keepdim=True)) 
+
+    def update_errs(self, x):
+        """Update the prediction errors"""
+        err = x - self.forward()
+        return err
+
+    def update_z(self, x, sparse_z, inf_lr):
+        """Update the hidden state
+        sparse_z: sparsity constraint on the hidden state
+        """
+        err = self.update_errs(x) # bsz x output_size
+        delta_z = -self.nonlin.deriv(self.z) * torch.matmul(err, self.Wout.weight.detach().clone())
+        delta_z += sparse_z * torch.sign(self.z)
+        self.z -= inf_lr * delta_z
+        
+    def inference(self, inf_iters, inf_lr, x, init_z, sparse_z):
+        """Run inference on the hidden state"""
+        self.inf_losses = []
+        with torch.no_grad():
+            self.z = init_z
+            for _ in range(inf_iters):
+                self.update_z(x, sparse_z, inf_lr)
+                # logging the energy during inference
+                self.inf_losses.append(self.get_energy(x))
+                
+    def get_energy(self, x):
+        """returns the average (across batches) energy of the model"""
+        err = self.update_errs(x)
+        # use mean to ensure that energy is independent of batch size and output size
+        energy = torch.sum(err ** 2) / x.shape[0]
+        return energy

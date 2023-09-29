@@ -83,6 +83,56 @@ def train_batched_input(model, optimizer, scheduler, loader,
 
     return train_losses
 
+def train_sparse_coding(model, optimizer, scheduler, loader, device, args):
+    """Function to train sparse coding with batched frames;"""
+    train_losses = []
+    for learn_iter in range(args.learn_iters):
+        epoch_loss = 0
+
+        # train the model
+        model.train()
+        with tqdm(total=len(loader.dataset)) as pbar:
+            for x in loader:
+                # xs: batch_size x input_size
+                batch_size = x.shape[0]
+
+                # reshape image to vector
+                x = x.reshape((batch_size, -1)).to(device)
+
+                # initialize the hidden activities for each batch
+                init_z = model.init_hidden(batch_size).to(device)
+
+                optimizer.zero_grad()
+                model.inference(args.inf_iters, args.inf_lr, x, init_z, args.sparsez)
+                energy = model.get_energy(x)
+
+                # add sparse constraint
+                l1_norm = args.sparseW * torch.linalg.norm(model.Wout.weight, 1)
+                # l1_norm /= (x.shape[1] * init_z.shape[1]) 
+                energy += l1_norm
+                
+                # backprop
+                energy.backward()
+                optimizer.step()
+
+                # weight normalization - necessary for sparse coding!
+                model.weight_norm()
+
+                # collect the loss
+                batch_loss = energy.item()
+
+                # update progress bar
+                pbar.set_postfix({'epoch': learn_iter, 'loss': "%.4f" % batch_loss})
+                pbar.update(batch_size)
+
+                # add the loss in this batch, and average across batches i.e., this epoch's batch average loss
+                epoch_loss += batch_loss / (len(loader.dataset) // batch_size)
+
+            train_losses.append(epoch_loss)
+            scheduler.step()
+
+    return train_losses
+
 def get_strf(hidden, test, tau, device):
     """
     hidden: hidden response of the model; test_size, seq_len, hidden_size
