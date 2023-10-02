@@ -31,9 +31,10 @@ def train_batched_input(model, optimizer, scheduler, loader,
     learn_iters, inf_iters, inf_lr, sparseWout, sparseWr, sparsez, device):
     """Function to train tPC with batched inputs;"""
     train_losses = []
+    hidden_losses, obs_losses = [], []
     for learn_iter in range(learn_iters):
         epoch_loss = 0
-
+        hidden_loss, obs_loss = 0, 0
         # train the model
         model.train()
         with tqdm(total=len(loader.dataset)) as pbar:
@@ -71,17 +72,20 @@ def train_batched_input(model, optimizer, scheduler, loader,
                 # add the loss in this batch, and average across batches i.e., this epoch's batch average loss
                 epoch_loss += batch_loss / (len(loader.dataset) // batch_size)
 
+                # collect layer-wise losses
+                hidden_loss += model.hidden_loss.item() / (len(loader.dataset) // batch_size)
+                obs_loss += model.obs_loss.item() / (len(loader.dataset) // batch_size)
+
                 # update progress bar
                 pbar.set_postfix({'epoch': learn_iter, 'loss': "%.4f" % batch_loss})
                 pbar.update(batch_size)
 
             train_losses.append(epoch_loss)
+            hidden_losses.append(hidden_loss)
+            obs_losses.append(obs_loss)
             scheduler.step()
-            # val_losses.append(val_loss)
-            # if (learn_iter + 1) % 10 == 0:
-            #     print(f'Epoch {learn_iter+1}, train loss {epoch_loss}')
 
-    return train_losses
+    return (train_losses, hidden_losses, obs_losses)
 
 def train_sparse_coding(model, optimizer, scheduler, loader, device, args):
     """Function to train sparse coding with batched frames;"""

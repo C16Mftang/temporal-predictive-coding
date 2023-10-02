@@ -368,9 +368,9 @@ class MultilayertPC(nn.Module):
         """
         bsz = x.shape[0] # obtain the batch size
         err_z, err_x = self.update_errs(x, prev_z)
-        self.hidden_loss = torch.sum(err_z**2)
-        self.obs_loss = torch.sum(err_x**2)
-        energy = (self.hidden_loss + self.obs_loss) / bsz
+        self.hidden_loss = torch.sum(err_z**2) / bsz
+        self.obs_loss = torch.sum(err_x**2) / bsz
+        energy = self.hidden_loss + self.obs_loss
         return energy
     
 class PredSparseCoding(nn.Module):

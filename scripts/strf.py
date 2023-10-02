@@ -72,10 +72,13 @@ parser.add_argument('--unit-id', type=int, default=[], nargs='+',
 
 args = parser.parse_args()
 
-def _plot_train_loss(train_losses, result_path):
+def _plot_train_loss(losses, result_path):
+    train_losses, hidden_losses, obs_losses = losses
     # plotting loss for tunning; temporary
     plt.figure()
-    plt.plot(train_losses, label='train')
+    plt.plot(train_losses, label='all')
+    plt.plot(hidden_losses, label='hidden')
+    plt.plot(obs_losses, label='obs')
     plt.legend()
     plt.savefig(result_path + f'/train_losses')
 
@@ -222,10 +225,11 @@ def main(args):
         train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
 
         # train model                                
-        train_losses = train_batched_input(tPC, optimizer, scheduler, train_loader, 
-                                           learn_iters, inf_iters, inf_lr, sparseWout, sparseWr, sparsez, device)
+        losses = train_batched_input(tPC, optimizer, scheduler, train_loader, 
+                                                                      learn_iters, inf_iters, inf_lr, sparseWout, 
+                                                                      sparseWr, sparsez, device)
         torch.save(tPC.state_dict(), os.path.join(result_path, f'model.pt'))
-        _plot_train_loss(train_losses, result_path)
+        _plot_train_loss(losses, result_path)
 
         # visualize weights learned
         Wout = tPC.Wout.weight # 
