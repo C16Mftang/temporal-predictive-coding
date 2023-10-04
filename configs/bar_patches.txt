@@ -1,9 +1,9 @@
---datapath=bar_patches
+--datapath=bar_patches_simple
 --train-size=1000
 --test-size=10000
 --test-seq-len=50
 --batch-size=1000
---hidden-size=12
+--hidden-size=3
 --learn-lr=0.008
 --learn-iters=400
 --inf-lr=5e-2

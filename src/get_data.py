@@ -140,7 +140,7 @@ def get_moving_bars(movie_num, frame_num, h, w, bar_width=2):
 
     return movies
 
-def get_bar_patches(sample_size, seq_len, h, w):
+def get_bar_patches(sample_size, seq_len, h, w, simple=False):
     # Variables
     frame_size = 100
     num_lines = 30
@@ -149,10 +149,12 @@ def get_bar_patches(sample_size, seq_len, h, w):
     movie = np.zeros((seq_len, frame_size, frame_size))
     
     # Define the lines
+    directions = ['horizontal'] if simple else ['horizontal', 'vertical']
+    movements = [1] if simple else [-1, 1]
     lines = [{'position': np.random.randint(0, frame_size),
               'color': np.random.choice([-1, 1]),
-              'direction': np.random.choice(['horizontal', 'vertical']),
-              'movement': np.random.choice([-1, 1])} for _ in range(num_lines)]
+              'direction': np.random.choice(directions),
+              'movement': np.random.choice(movements)} for _ in range(num_lines)]
     
     # Draw the lines in the first frame
     for line in lines:
@@ -168,7 +170,7 @@ def get_bar_patches(sample_size, seq_len, h, w):
                 new_position = line['position'] + line['movement']
                 # Check for bouncing
                 if new_position < 0 or new_position >= frame_size:
-                    line['movement'] = -line['movement']
+                    line['movement'] = 0 if simple else -line['movement']
                     new_position = line['position'] + line['movement']
                 line['position'] = new_position
                 movie[t, line['position'], :] = line['color']

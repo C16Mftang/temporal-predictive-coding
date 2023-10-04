@@ -17,7 +17,7 @@ from src.get_data import get_nat_movie, get_moving_blobs, get_moving_bars, get_b
 parser = argparse.ArgumentParser(description='Spatio-temporal receptive fields',
                                  fromfile_prefix_chars='@')
 
-parser.add_argument('--datapath', type=str, default='nat_data', choices=['nat_data', 'data/nat_data', 'blobs', 'bar', 'bar_patches'],
+parser.add_argument('--datapath', type=str, default='nat_data', choices=['nat_data', 'data/nat_data', 'blobs', 'bar', 'bar_patches', 'bar_patches_simple'],
                     help='path to nat data or to use Gaussian blobs, must specify')
 parser.add_argument('--train-size', type=int, default=100000, 
                     help='training size')
@@ -148,7 +148,7 @@ def _plot_weights(Wr, Wout, hidden_size, h, w, result_path):
         f = Wout[:, i]
         im = ax.imshow(f.reshape((h, w)), cmap='gray', vmin=Wmin, vmax=Wmax)
         ax.axis('off')
-    # fig.colorbar(im, ax=axes.ravel().tolist())
+    fig.colorbar(im, ax=axes.ravel().tolist())
     # fig.tight_layout()
     plt.savefig(result_path + '/Wout', dpi=200)
 
@@ -218,6 +218,8 @@ def main(args):
             train = get_moving_bars(train_size, seq_len, h, w, bar_width=3).astype(np.float16)
         elif datapath == 'bar_patches':
             train = get_bar_patches(train_size, seq_len, h, w).astype(np.float16)
+        elif datapath == 'bar_patches_simple':
+            train = get_bar_patches(train_size, seq_len, h, w, simple=True).astype(np.float16)
         else:
             train = get_nat_movie(datapath, train_size).reshape((train_size, -1, h, w))
 
