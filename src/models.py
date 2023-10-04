@@ -289,8 +289,8 @@ class MultilayertPC(nn.Module):
         Note that using kaiming_uniform_ here will give us very small std of the initial hidden state
         Because it essentially makes std proportional to sqrt(1 / fan_in), where fan_in here is batch_size!
         """
-        return nn.init.kaiming_uniform_(torch.empty(bsz, self.hidden_size), mode='fan_out')
-        # return nn.init.normal_(torch.empty(bsz, self.hidden_size), mean=0, std=5.0)
+        # return nn.init.kaiming_uniform_(torch.empty(bsz, self.hidden_size), mode='fan_out')
+        return nn.init.normal_(torch.empty(bsz, self.hidden_size), mean=0, std=1e-5)
     
     def get_hidden(self):
         return self.z.clone()
