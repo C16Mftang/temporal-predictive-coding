@@ -284,8 +284,13 @@ class MultilayertPC(nn.Module):
         return pred_z, pred_x
 
     def init_hidden(self, bsz):
-        """Initializing prev_z"""
-        return nn.init.kaiming_uniform_(torch.empty(bsz, self.hidden_size))
+        """Initializing prev_z
+        
+        Note that using kaiming_uniform_ here will give us very small std of the initial hidden state
+        Because it essentially makes std proportional to sqrt(1 / fan_in), where fan_in here is batch_size!
+        """
+        return nn.init.kaiming_uniform_(torch.empty(bsz, self.hidden_size), mode='fan_out')
+        # return nn.init.normal_(torch.empty(bsz, self.hidden_size), mean=0, std=5.0)
     
     def get_hidden(self):
         return self.z.clone()
@@ -297,7 +302,7 @@ class MultilayertPC(nn.Module):
         # in-place normalization of weight parameters
         with torch.no_grad():
             self.Wout.weight.div_(torch.norm(self.Wout.weight, dim=0, keepdim=True)) 
-            self.Wr.weight.div_(torch.norm(self.Wr.weight, dim=0, keepdim=True)) 
+            # self.Wr.weight.div_(torch.norm(self.Wr.weight, dim=0, keepdim=True)) 
 
     def update_errs(self, x, prev_z):
         """
