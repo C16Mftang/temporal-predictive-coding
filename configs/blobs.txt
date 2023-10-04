@@ -19,4 +19,4 @@
 --seq-len=10
 --nonlin=linear
 --tau=4
---blob-velocity=0.5
+--blob-velocity=3
