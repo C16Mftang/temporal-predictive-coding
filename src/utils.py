@@ -49,6 +49,7 @@ def train_batched_input(model, optimizer, scheduler, loader,
                 prev = model.init_hidden(batch_size).to(device)
 
                 batch_loss = 0
+                batch_hidden_loss, batch_obs_loss = 0, 0
                 for k in range(seq_len):
                     x = xs[:, k, :].clone().detach()
                     optimizer.zero_grad()
@@ -69,12 +70,16 @@ def train_batched_input(model, optimizer, scheduler, loader,
                     # add up the loss value at each time step then get the average across sequence elements
                     batch_loss += energy.item() / seq_len
 
+                    # notice that they do not add up to the total energy due to the sparse constraint
+                    batch_hidden_loss += model.hidden_loss.item() / seq_len
+                    batch_obs_loss += model.obs_loss.item() / seq_len
+
                 # add the loss in this batch, and average across batches i.e., this epoch's batch average loss
                 epoch_loss += batch_loss / (len(loader.dataset) // batch_size)
 
                 # collect layer-wise losses
-                hidden_loss += model.hidden_loss.item() / (len(loader.dataset) // batch_size)
-                obs_loss += model.obs_loss.item() / (len(loader.dataset) // batch_size)
+                hidden_loss += batch_hidden_loss / (len(loader.dataset) // batch_size)
+                obs_loss += batch_obs_loss / (len(loader.dataset) // batch_size)
 
                 # update progress bar
                 pbar.set_postfix({'epoch': learn_iter, 'loss': "%.4f" % batch_loss})
