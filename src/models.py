@@ -265,22 +265,28 @@ class TemporalPC(nn.Module):
 
 class MultilayertPC(nn.Module):
     """Multi-layer tPC class, using autograd"""
-    def __init__(self, hidden_size, output_size, nonlin='tanh'):
+    def __init__(self, hidden_size, output_size, nonlin='tanh', diff_nonlin=False):
         super(MultilayertPC, self).__init__()
         self.hidden_size = hidden_size
         self.Wr = nn.Linear(hidden_size, hidden_size, bias=False)
         self.Wout = nn.Linear(hidden_size, output_size, bias=False)
 
-        if nonlin == 'linear':
-            self.nonlin = Linear()
-        elif nonlin == 'tanh':
-            self.nonlin = Tanh()
+        if diff_nonlin:
+            self.nonlin_out = Linear()
+            self.nonlin_rec = ReLU()
         else:
-            raise ValueError("no such nonlinearity!")
+            if nonlin == 'linear':
+                self.nonlin_out, self.nonlin_rec = Linear(), Linear()
+            elif nonlin == 'tanh':
+                self.nonlin_out, self.nonlin_rec = Tanh(), Tanh()
+            elif nonlin == 'relu':
+                self.nonlin_out, self.nonlin_rec = ReLU(), ReLU()
+            else:
+                raise ValueError("no such nonlinearity!")
     
     def forward(self, prev_z):
-        pred_z = self.Wr(self.nonlin(prev_z))
-        pred_x = self.Wout(self.nonlin(pred_z))
+        pred_z = self.Wr(self.nonlin_rec(prev_z))
+        pred_x = self.Wout(self.nonlin_out(pred_z))
         return pred_z, pred_x
 
     def init_hidden(self, bsz):
@@ -317,7 +323,7 @@ class MultilayertPC(nn.Module):
             err_z: temporal error, shape (batch_size, hidden_size)
         """
         pred_z, _ = self.forward(prev_z)
-        pred_x = self.Wout(self.nonlin(self.z))
+        pred_x = self.Wout(self.nonlin_out(self.z))
         err_z = self.z - pred_z
         err_x = x - pred_x
         return err_z, err_x
@@ -333,7 +339,7 @@ class MultilayertPC(nn.Module):
         """
         bsz = x.shape[0]
         err_z, err_x = self.update_errs(x, prev_z)
-        delta_z = err_z - self.nonlin.deriv(self.z) * torch.matmul(err_x, self.Wout.weight.detach().clone())
+        delta_z = err_z - self.nonlin_out.deriv(self.z) * torch.matmul(err_x, self.Wout.weight.detach().clone())
         delta_z += sparse_z * torch.sign(self.z)
         self.z -= inf_lr * delta_z
         if update_x:

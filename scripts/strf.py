@@ -57,7 +57,7 @@ parser.add_argument('--std', type=float, default=3.,
                     help='level of standard deviation for white noise')               
 parser.add_argument('--tau', type=int, default=6,
                     help='number of preceding frames in STA')      
-parser.add_argument('--nonlin', type=str, default='linear', choices=['linear', 'tanh'],
+parser.add_argument('--nonlin', type=str, default='linear', choices=['linear', 'tanh', 'relu'],
                     help='nonlinearity') 
 parser.add_argument('--infer-with', type=str, default='white noise', choices=['white noise', 'test'],
                     help='data on which the inference is performed')
@@ -69,6 +69,8 @@ parser.add_argument('--seq-len', type=int, default=50,
                     help='sequence length, default to 50')        
 parser.add_argument('--unit-id', type=int, default=[], nargs='+',
                     help='selected unit ids to plot strf')
+parser.add_argument('--diff-nonlin', type=str, default='False', choices=['False', 'True'],
+                    help='whether to use different nonlinearities for recurrent and forward process')     
 
 args = parser.parse_args()
 
@@ -184,6 +186,7 @@ def main(args):
     sparseWr = args.sparseWr
     sparsez = args.sparsez
     nonlin = args.nonlin
+    diff_nonlin = args.diff_nonlin
     decay_step_size = args.lr_decay_step
     decay_rate = args.lr_decay_rate
     blob_velocity = args.blob_velocity
@@ -197,7 +200,7 @@ def main(args):
     inf_lr_test = args.inf_lr_test
 
     # initialize model
-    tPC = MultilayertPC(hidden_size, h * w, nonlin).to(device)
+    tPC = MultilayertPC(hidden_size, h * w, nonlin, diff_nonlin).to(device)
     # apply lr decay
     optimizer = torch.optim.Adam(tPC.parameters(), lr=learn_lr)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=decay_step_size, gamma=decay_rate)
@@ -228,8 +231,8 @@ def main(args):
 
         # train model                                
         losses = train_batched_input(tPC, optimizer, scheduler, train_loader, 
-                                                                      learn_iters, inf_iters, inf_lr, sparseWout, 
-                                                                      sparseWr, sparsez, device)
+                                    learn_iters, inf_iters, inf_lr, sparseWout, 
+                                    sparseWr, sparsez, device)
         torch.save(tPC.state_dict(), os.path.join(result_path, f'model.pt'))
         _plot_train_loss(losses, result_path)
 

@@ -1,9 +1,9 @@
---datapath=bar_patches_simple
+--datapath=bar_patches
 --train-size=1000
 --test-size=10000
 --test-seq-len=50
 --batch-size=1000
---hidden-size=3
+--hidden-size=12
 --learn-lr=0.008
 --learn-iters=400
 --inf-lr=5e-2
@@ -17,5 +17,6 @@
 --lr-decay-rate=0.9
 --hw=3
 --seq-len=10
---nonlin=linear
+--nonlin=relu
+--diff-nonlin=True
 --tau=3

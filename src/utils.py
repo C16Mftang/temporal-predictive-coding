@@ -27,6 +27,16 @@ class Linear(nn.Module):
     def deriv(self, inp):
         return torch.ones((1,)).to(inp.device)
 
+class ReLU(nn.Module):
+    def forward(self, inp):
+        return torch.relu(inp)
+
+    def deriv(self, inp):
+        out = self(inp)
+        out[out > 0] = 1.0
+        return out
+
+
 def train_batched_input(model, optimizer, scheduler, loader, 
     learn_iters, inf_iters, inf_lr, sparseWout, sparseWr, sparsez, device):
     """Function to train tPC with batched inputs;"""
