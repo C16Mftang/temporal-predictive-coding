@@ -42,7 +42,7 @@ def get_nat_movie(datapath, train_size):
 
         thresh: the threshold determining the dynamical level of the movies
     """
-    d_path = os.path.join(datapath, 'nat_dynamic.npy')
+    d_path = os.path.join(datapath, 'nat_high_dynamic.npy')
     movie = np.load(d_path, mmap_mode='r+')
     print(movie.shape)
     train = movie[:train_size]
