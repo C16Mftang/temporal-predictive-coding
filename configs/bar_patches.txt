@@ -17,6 +17,6 @@
 --lr-decay-rate=0.9
 --hw=3
 --seq-len=10
---nonlin=relu
+--nonlin=linear
 --diff-nonlin=True
 --tau=3
