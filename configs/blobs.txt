@@ -10,14 +10,14 @@
 --inf-iters=50
 --inf-lr-test=2e-2
 --inf-iters-test=200
---sparseWout=0.1
+--sparseWout=0.5
 --sparseWr=0.
 --sparsez=0.5
 --lr-decay-step=10
 --lr-decay-rate=0.8
---hw=16
+--hw=10
 --seq-len=10
 --nonlin=linear
 --diff-nonlin=True
 --tau=4
---blob-velocity=3
+--blob-velocity=2

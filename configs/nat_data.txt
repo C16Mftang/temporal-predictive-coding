@@ -10,7 +10,7 @@
 --inf-iters=50
 --inf-lr-test=2e-2
 --inf-iters-test=200
---sparseWout=0.9
+--sparseWout=1.5
 --sparseWr=0
 --sparsez=0.5
 --lr-decay-step=10
