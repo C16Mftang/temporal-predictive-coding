@@ -269,6 +269,7 @@ class MultilayertPC(nn.Module):
         super(MultilayertPC, self).__init__()
         self.hidden_size = hidden_size
         self.Wr = nn.Linear(hidden_size, hidden_size, bias=False)
+        nn.init.normal_(self.Wr.weight, mean=0, std=0.1)
         self.Wout = nn.Linear(hidden_size, output_size, bias=False)
 
         if diff_nonlin:
