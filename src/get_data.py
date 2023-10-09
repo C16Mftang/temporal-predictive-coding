@@ -49,8 +49,59 @@ def get_nat_movie(datapath, train_size):
     
     return train
 
-def get_moving_blobs(movie_num, frame_num, h, w, velocity):
+def get_moving_blobs(movie_num, frame_num, h, w, velocity, offset_factor=1):
     """Function to generate moving Gaussian blobs"""
+    # def _gaussian_blob(x, y, x0, y0, sigma_x, sigma_y, rho):
+    #     inv_cov = np.linalg.inv([[sigma_x**2, rho*sigma_x*sigma_y], [rho*sigma_x*sigma_y, sigma_y**2]])
+    #     a = inv_cov[0, 0]
+    #     b = inv_cov[0, 1]
+    #     c = inv_cov[1, 1]
+    #     z = a*(x-x0)**2 + 2*b*(x-x0)*(y-y0) + c*(y-y0)**2
+    #     return np.exp(-0.5 * z)
+
+    # def _initialize_frame(h, w, sigma_x, sigma_y, rho):
+    #     x0, y0 = np.random.randint(0, w), np.random.randint(0, h)
+    #     x, y = np.meshgrid(np.arange(w), np.arange(h))
+    #     frame = _gaussian_blob(x, y, x0, y0, sigma_x, sigma_y, rho)
+    #     angle = np.random.uniform(0, 2 * np.pi)
+    #     return frame, (x0, y0), angle
+
+    # def _move_blob(frame, center, angle, velocity, sigma_x, sigma_y, rho):
+    #     h, w = frame.shape
+    #     dx = int(velocity * np.cos(angle))
+    #     dy = int(velocity * np.sin(angle))
+    #     new_center = (center[0] + dx, center[1] + dy)
+        
+    #     # Check for collisions with the borders and reflect the movement if necessary
+    #     if new_center[0] <= 0 or new_center[0] >= w:
+    #         angle = np.pi - angle
+    #     if new_center[1] <= 0 or new_center[1] >= h:
+    #         angle = -angle
+
+    #     # Recalculate movement after reflection
+    #     dx = int(velocity * np.cos(angle))
+    #     dy = int(velocity * np.sin(angle))
+    #     new_center = (center[0] + dx, center[1] + dy)
+
+    #     x, y = np.meshgrid(np.arange(w), np.arange(h))
+    #     new_frame = _gaussian_blob(x, y, new_center[0], new_center[1], sigma_x, sigma_y, rho)
+    #     return new_frame, new_center, angle  # Return the updated angle
+
+    # movies = np.zeros((movie_num, frame_num, h, w))
+    # # velocity = 1.5 # fix the velocity for all movies
+
+    # for i in range(movie_num):
+    #     sigma_x = np.random.uniform(1.0, 3.0)
+    #     sigma_y = np.random.uniform(1.0, 3.0)
+    #     rho = np.random.uniform(-0.9, 0.9)
+
+    #     frame, center, angle = _initialize_frame(h, w, sigma_x, sigma_y, rho)
+    #     movies[i, 0] = frame
+    #     for j in range(1, frame_num):
+    #         frame, center, angle = _move_blob(frame, center, angle, velocity, sigma_x, sigma_y, rho)
+    #         movies[i, j] = frame
+
+    # return movies
     def _gaussian_blob(x, y, x0, y0, sigma_x, sigma_y, rho):
         inv_cov = np.linalg.inv([[sigma_x**2, rho*sigma_x*sigma_y], [rho*sigma_x*sigma_y, sigma_y**2]])
         a = inv_cov[0, 0]
@@ -59,12 +110,33 @@ def get_moving_blobs(movie_num, frame_num, h, w, velocity):
         z = a*(x-x0)**2 + 2*b*(x-x0)*(y-y0) + c*(y-y0)**2
         return np.exp(-0.5 * z)
 
+    def _negative_blob(x, y, x0, y0, sigma_x, sigma_y, rho):
+        return -_gaussian_blob(x, y, x0, y0, sigma_x, sigma_y, rho)
+
+
     def _initialize_frame(h, w, sigma_x, sigma_y, rho):
-        x0, y0 = np.random.randint(0, w), np.random.randint(0, h)
+        # Define a margin, say 25% of the width and height
+        margin_w = int(0.25 * w)
+        margin_h = int(0.25 * h)
+        
+        # Adjust the random range to be within the central area
+        x0 = np.random.randint(margin_w, w - margin_w)
+        y0 = np.random.randint(margin_h, h - margin_h)
         x, y = np.meshgrid(np.arange(w), np.arange(h))
         frame = _gaussian_blob(x, y, x0, y0, sigma_x, sigma_y, rho)
-        angle = np.random.uniform(0, 2 * np.pi)
+        angle = np.random.uniform(0, 2*np.pi)
+        
+        offset = offset_factor * sigma_x  # Distance to place the side blobs, adjust as needed
+
+        # Offset the x and y coordinates for the side blobs
+        dx = int(offset * np.sin(angle))
+        dy = int(offset * np.cos(angle))
+
+        frame += _negative_blob(x, y, x0 + dx, y0 + dy, sigma_x, sigma_y, rho)
+        frame += _negative_blob(x, y, x0 - dx, y0 - dy, sigma_x, sigma_y, rho)
+        
         return frame, (x0, y0), angle
+
 
     def _move_blob(frame, center, angle, velocity, sigma_x, sigma_y, rho):
         h, w = frame.shape
@@ -72,35 +144,46 @@ def get_moving_blobs(movie_num, frame_num, h, w, velocity):
         dy = int(velocity * np.sin(angle))
         new_center = (center[0] + dx, center[1] + dy)
         
-        # Check for collisions with the borders and reflect the movement if necessary
-        if new_center[0] <= 0 or new_center[0] >= w:
-            angle = np.pi - angle
-        if new_center[1] <= 0 or new_center[1] >= h:
-            angle = -angle
+        # # Check for collisions with the borders and reflect the movement if necessary
+        # if new_center[0] <= 0 or new_center[0] >= w:
+        #     angle = np.pi - angle
+        # if new_center[1] <= 0 or new_center[1] >= h:
+        #     angle = -angle
 
-        # Recalculate movement after reflection
-        dx = int(velocity * np.cos(angle))
-        dy = int(velocity * np.sin(angle))
-        new_center = (center[0] + dx, center[1] + dy)
+        # # Recalculate movement after reflection
+        # dx = int(velocity * np.cos(angle))
+        # dy = int(velocity * np.sin(angle))
+        # new_center = (center[0] + dx, center[1] + dy)
 
         x, y = np.meshgrid(np.arange(w), np.arange(h))
         new_frame = _gaussian_blob(x, y, new_center[0], new_center[1], sigma_x, sigma_y, rho)
-        return new_frame, new_center, angle  # Return the updated angle
+
+        # Determine side blobs' positions, same as above
+        offset = offset_factor * sigma_x
+        dx = int(offset * np.sin(angle))
+        dy = int(offset * np.cos(angle))
+        
+        new_frame += _negative_blob(x, y, new_center[0] + dx, new_center[1] + dy, sigma_x, sigma_y, rho)
+        new_frame += _negative_blob(x, y, new_center[0] - dx, new_center[1] - dy, sigma_x, sigma_y, rho)
+        
+        return new_frame, new_center, angle
 
     movies = np.zeros((movie_num, frame_num, h, w))
-    # velocity = 1.5 # fix the velocity for all movies
 
     for i in range(movie_num):
-        sigma_x = np.random.uniform(1.0, 3.0)
-        sigma_y = np.random.uniform(1.0, 3.0)
-        rho = np.random.uniform(-0.9, 0.9)
+        sigma_x = np.random.uniform(2, 3)
+        sigma_y = sigma_x * np.random.uniform(0.5, 0.6)
+        rho_magnitude = np.random.uniform(0.9, 0.95)
+        # rho_magnitude = 0.9
+        rho_sign = np.random.choice([-1, 1])
+        rho = rho_magnitude * rho_sign
 
         frame, center, angle = _initialize_frame(h, w, sigma_x, sigma_y, rho)
         movies[i, 0] = frame
         for j in range(1, frame_num):
             frame, center, angle = _move_blob(frame, center, angle, velocity, sigma_x, sigma_y, rho)
             movies[i, j] = frame
-
+    movies = movies + np.random.normal(0, 0.1, movies.shape)
     return movies
 
 def get_moving_bars(movie_num, frame_num, h, w, bar_width=2):
