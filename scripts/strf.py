@@ -59,7 +59,7 @@ parser.add_argument('--std', type=float, default=3.,
                     help='level of standard deviation for white noise')               
 parser.add_argument('--tau', type=int, default=6,
                     help='number of preceding frames in STA')      
-parser.add_argument('--nonlin', type=str, default='linear', choices=['linear', 'tanh', 'relu'],
+parser.add_argument('--nonlin', type=str, default='linear', choices=['linear', 'tanh', 'relu', 'sigmoid'],
                     help='nonlinearity') 
 parser.add_argument('--infer-with', type=str, default='white noise', choices=['white noise', 'test'],
                     help='data on which the inference is performed')
@@ -229,7 +229,7 @@ def main(args):
             train = get_nat_movie(datapath, train_size).reshape((train_size, -1, h, w))
         
         # whiten the data
-        train = spatiotemporal_whitening(train, args.whitening)
+        train = spatiotemporal_whitening(train, args.whitening)[0].reshape((train_size, -1, h, w)).astype(np.float16)
 
         # make training data a dataloader
         train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
@@ -309,6 +309,8 @@ def main(args):
                 nonlin = Tanh()
             elif nonlin == 'relu':
                 nonlin = ReLU()
+            elif nonlin == 'sigmoid':
+                nonlin = Sigmoid()
             else:
                 raise ValueError("no such nonlinearity!")
             test = to_torch(test, device)   

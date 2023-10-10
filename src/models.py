@@ -282,6 +282,8 @@ class MultilayertPC(nn.Module):
                 self.nonlin_out, self.nonlin_rec = Tanh(), Tanh()
             elif nonlin == 'relu':
                 self.nonlin_out, self.nonlin_rec = ReLU(), ReLU()
+            elif nonlin == 'sigmoid':
+                self.nonlin_out, self.nonlin_rec = Sigmoid(), Sigmoid()
             else:
                 raise ValueError("no such nonlinearity!")
     
