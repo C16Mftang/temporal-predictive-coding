@@ -298,8 +298,16 @@ def main(args):
             _plot_inf_losses(inf_losses, result_path)
 
             # compute the STRFs given the hidden activities and test stimuli
+            if nonlin == 'linear':
+                nonlin = Linear()
+            elif nonlin == 'tanh':
+                nonlin = Tanh()
+            elif nonlin == 'relu':
+                nonlin = ReLU()
+            else:
+                raise ValueError("no such nonlinearity!")
             test = to_torch(test, device)   
-            STRFs = get_strf(hidden, test, tau, device).reshape((hidden_size, tau, h, w))
+            STRFs = get_strf(nonlin(hidden), test, tau, device).reshape((hidden_size, tau, h, w))
             if len(args.unit_id) > 0:
                 _plot_selected_strf(STRFs, tau, result_path, hidden_size, args.unit_id)
             else:
