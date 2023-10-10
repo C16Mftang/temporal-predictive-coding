@@ -185,3 +185,31 @@ def get_strf(hidden, test, tau, device):
 
         all_units_strfs[j] = to_np(strfs)
     return all_units_strfs
+
+def spatiotemporal_whitening(data, mode='ZCA'):
+    # perform spatio temporal whitening on the data
+    # data: test_size, seq_len, h*w
+    data = data.reshape(data.shape[0], data.shape[1], -1)
+    dim_feature = data.shape[-1]
+    # 1. Mean Removal
+    mean_feature = np.mean(data, axis=(0, 1)) # shape: h*w
+    data_centered = data - mean_feature # shape: test_size, seq_len, h*w
+
+    # 2. Compute the Covariance Matrix
+    cov_matrix = np.cov(data_centered.reshape(-1, dim_feature).T) # shape: h*w, h*w
+
+    # 3. Eigendecomposition
+    eigenvalues, eigenvectors = np.linalg.eigh(cov_matrix)
+
+    # 4. Whitening Transformation
+    D_inv_sqrt = np.diag(eigenvalues ** (-0.5)) 
+    if mode == 'PCA':
+        whitening_matrix = np.dot(eigenvectors, D_inv_sqrt)
+    elif mode == 'ZCA':
+        whitening_matrix = np.dot(np.dot(eigenvectors, D_inv_sqrt), eigenvectors.T)
+    elif mode == 'None':
+        return data, np.eye(dim_feature)
+    else:
+        raise ValueError('mode should be either PCA or ZCA or None')
+
+    return np.dot(data_centered, whitening_matrix), whitening_matrix

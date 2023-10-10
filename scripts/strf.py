@@ -19,6 +19,8 @@ parser = argparse.ArgumentParser(description='Spatio-temporal receptive fields',
 
 parser.add_argument('--datapath', type=str, default='nat_data', choices=['nat_data', 'data/nat_data', 'blobs', 'bar', 'bar_patches', 'bar_patches_simple'],
                     help='path to nat data or to use Gaussian blobs, must specify')
+parser.add_argument('--whitening', type=str, default='None', choices=['None', 'ZCA', 'PCA'], 
+                    help='whether and what kind of whitening to perform')
 parser.add_argument('--train-size', type=int, default=100000, 
                     help='training size')
 parser.add_argument('--test-size', type=int, default=10000, 
@@ -225,6 +227,9 @@ def main(args):
             train = get_bar_patches(train_size, seq_len, h, w, simple=True).astype(np.float16)
         else:
             train = get_nat_movie(datapath, train_size).reshape((train_size, -1, h, w))
+        
+        # whiten the data
+        train = spatiotemporal_whitening(train, args.whitening)
 
         # make training data a dataloader
         train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
