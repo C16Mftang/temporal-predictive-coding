@@ -35,6 +35,14 @@ class ReLU(nn.Module):
         out = self(inp)
         out[out > 0] = 1.0
         return out
+    
+class Sigmoid(nn.Module):
+    def forward(self, inp):
+        return 1 / (1 + torch.exp(-inp))
+
+    def deriv(self, inp):
+        sigmoid_output = self.forward(inp)
+        return sigmoid_output * (1 - sigmoid_output)
 
 
 def train_batched_input(model, optimizer, scheduler, loader, 
