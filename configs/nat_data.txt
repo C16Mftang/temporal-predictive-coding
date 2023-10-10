@@ -17,6 +17,7 @@
 --lr-decay-rate=0.8
 --hw=16
 --seq-len=50
---nonlin=linear
---diff-nonlin=True
+--nonlin=relu
+--diff-nonlin=False
 --tau=4
+--whitening=ZCA
