@@ -17,7 +17,8 @@
 --lr-decay-rate=0.8
 --hw=10
 --seq-len=10
---nonlin=relu
+--nonlin=linear
 --diff-nonlin=False
 --tau=4
 --blob-velocity=2
+--whitening=None
