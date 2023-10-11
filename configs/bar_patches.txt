@@ -1,4 +1,4 @@
---datapath=bar_patches_simple
+--datapath=bar_patches
 --train-size=1000
 --test-size=10000
 --test-seq-len=50
@@ -17,6 +17,6 @@
 --lr-decay-rate=0.9
 --hw=3
 --seq-len=10
---nonlin=linear
+--nonlin=tanh
 --diff-nonlin=False
 --tau=3
