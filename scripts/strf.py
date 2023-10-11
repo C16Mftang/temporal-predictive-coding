@@ -150,6 +150,7 @@ def _plot_weights(Wr, Wout, hidden_size, h, w, result_path):
         fig, axes = plt.subplots(hidden_size // 32, 32, figsize=(8, (hidden_size // 32) // 4))
     for i, ax in enumerate(axes.flatten()):
         f = Wout[:, i]
+        Wmin, Wmax = -np.max(np.abs(f)), np.max(np.abs(f))
         im = ax.imshow(f.reshape((h, w)), cmap='gray', vmin=Wmin, vmax=Wmax)
         ax.axis('off')
     fig.colorbar(im, ax=axes.ravel().tolist())
