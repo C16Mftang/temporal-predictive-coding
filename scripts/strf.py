@@ -255,7 +255,7 @@ def main(args):
             raise Exception("Specified model not found!")
         else:
             # initialize model
-            tPC = MultilayertPC(hidden_size, h * w, nonlin).to(device)
+            tPC = MultilayertPC(hidden_size, h * w, nonlin, diff_nonlin).to(device)
             # load a trained model
             tPC.load_state_dict(torch.load(os.path.join(result_path, f'model.pt'), 
                                            map_location=torch.device(device)))
