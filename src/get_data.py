@@ -31,7 +31,7 @@ class DataWrapper(Dataset):
     def __getitem__(self, idx):
         return self.features[idx], []
 
-def get_nat_movie(datapath, train_size):
+def get_nat_movie(datapath, train_size, seq_len):
     """
     Function to load Seb's natural movie data
 
@@ -44,8 +44,8 @@ def get_nat_movie(datapath, train_size):
     """
     d_path = os.path.join(datapath, 'nat_high_dynamic.npy')
     movie = np.load(d_path, mmap_mode='r+')
-    print(movie.shape)
-    train = movie[:train_size]
+    train = movie[:train_size, :seq_len]
+    print(train.shape)
     
     return train
 
@@ -226,10 +226,11 @@ def get_moving_bars(movie_num, frame_num, h, w, bar_width=2):
 def get_bar_patches(sample_size, seq_len, h, w, simple=False):
     # Variables
     frame_size = 100
-    num_lines = 30
+    num_lines = 50
     
     # Initialize the movie with gray background
     movie = np.zeros((seq_len, frame_size, frame_size))
+    np.random.seed(48)
     
     # Define the lines
     directions = ['horizontal'] if simple else ['horizontal', 'vertical']

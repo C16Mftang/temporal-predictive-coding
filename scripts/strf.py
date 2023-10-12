@@ -227,7 +227,7 @@ def main(args):
         elif datapath == 'bar_patches_simple':
             train = get_bar_patches(train_size, seq_len, h, w, simple=True).astype(np.float16)
         else:
-            train = get_nat_movie(datapath, train_size).reshape((train_size, -1, h, w))
+            train = get_nat_movie(datapath, train_size, seq_len).reshape((train_size, -1, h, w))
         
         # whiten the data
         train = spatiotemporal_whitening(train, args.whitening)[0].reshape((train_size, -1, h, w)).astype(np.float16)
