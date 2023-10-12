@@ -45,6 +45,10 @@ def get_nat_movie(datapath, train_size, seq_len):
     d_path = os.path.join(datapath, 'nat_high_dynamic.npy')
     movie = np.load(d_path, mmap_mode='r+')
     train = movie[:train_size, :seq_len]
+    if seq_len <= 20:
+        train2 = movie[:train_size, seq_len:seq_len*2]
+        train = np.concatenate((train, train2), axis=0) 
+        print('Train size changed, now 2 * train_size')
     print(train.shape)
     
     return train
