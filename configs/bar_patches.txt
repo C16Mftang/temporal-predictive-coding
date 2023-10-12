@@ -10,13 +10,13 @@
 --inf-iters=50
 --inf-lr-test=2e-2
 --inf-iters-test=200
---sparseWout=0.3
+--sparseWout=0.35
 --sparseWr=0.
 --sparsez=0.5
 --lr-decay-step=10
 --lr-decay-rate=0.9
 --hw=3
 --seq-len=10
---nonlin=tanh
+--nonlin=relu
 --diff-nonlin=False
 --tau=3
