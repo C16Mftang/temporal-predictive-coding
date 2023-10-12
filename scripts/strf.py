@@ -134,7 +134,7 @@ def _plot_selected_strf(all_strfs, tau, result_path, hidden_size, selected_ids):
             ax[i, j].get_xaxis().set_ticks([])
             ax[i, j].get_yaxis().set_ticks([])
             if i == 0:
-                ax[i, j].set_title(f't - {tau-j}', fontsize=10)
+                ax[i, j].set_title(f't - {tau-1-j}', fontsize=10)
     fig.tight_layout()
     plt.savefig(result_path + f'/strf_selected', dpi=200)
     plt.close()
