@@ -112,7 +112,7 @@ def _plot_strf(all_strfs, tau, result_path, hidden_size, n_files=20):
                 ax[i, j].get_xaxis().set_ticks([])
                 ax[i, j].get_yaxis().set_ticks([])
                 if i == 0:
-                    ax[i, j].set_title(f't - {tau-j}', fontsize=10)
+                    ax[i, j].set_title(f't - {tau-1-j}', fontsize=10)
         fig.tight_layout()
         plt.savefig(result_path + f'/strf_group{f+1}', dpi=200)
         plt.close()
