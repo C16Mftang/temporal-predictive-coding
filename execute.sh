@@ -24,4 +24,4 @@ module load Anaconda3
 source activate $DATA/temporalenv
 
 # run the application
-python scripts/strf.py --datapath 'nat_data' --train-size 20000 --batch-size 2000 --hidden-size 320 --sparsez 0.5 --learn-lr 5e-3 --learn-iters 400 --inf-lr 5e-2 --inf-iters 50 --sparseWout 1.5 --sparseWr 1.0 --lr-decay-step 10 --lr-decay-rate 0.8
+python scripts/strf.py @configs/nat_data.txt

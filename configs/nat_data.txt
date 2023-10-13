@@ -10,7 +10,7 @@
 --inf-iters=50
 --inf-lr-test=2e-2
 --inf-iters-test=200
---sparseWout=1.25
+--sparseWout=0.8
 --sparseWr=0
 --sparsez=0.5
 --lr-decay-step=10
@@ -19,5 +19,5 @@
 --seq-len=20
 --nonlin=tanh
 --diff-nonlin=False
---tau=4
+--tau=6
 --whitening=None
