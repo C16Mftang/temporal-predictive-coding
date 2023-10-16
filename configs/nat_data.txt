@@ -10,14 +10,14 @@
 --inf-iters=50
 --inf-lr-test=2e-2
 --inf-iters-test=200
---sparseWout=0.8
+--sparseWout=0.9
 --sparseWr=0
 --sparsez=0.5
 --lr-decay-step=10
 --lr-decay-rate=0.8
 --hw=16
 --seq-len=20
---nonlin=tanh
+--nonlin=linear
 --diff-nonlin=False
---tau=6
+--tau=5
 --whitening=None
