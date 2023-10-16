@@ -128,14 +128,22 @@ def _plot_selected_strf(all_strfs, tau, result_path, hidden_size, selected_ids):
     for i in range(n_units):
         rf = selected_strfs[i]
         strf_min, strf_max = -np.max(np.abs(rf)), np.max(np.abs(rf))
-        ax[i, 0].set_ylabel(f'#{selected_ids[i]}', fontsize=8)
+        ax[i, 0].set_ylabel(f'#{selected_ids[i]}', fontsize=6)
         for j in range(tau):
-            ax[i, j].imshow(rf[j], cmap='gray', vmin=strf_min, vmax=strf_max)
+            im = ax[i, j].imshow(rf[j], cmap='gray', vmin=strf_min, vmax=strf_max)
+            # ax[i, j].patch.set_edgecolor('black')  # Set edge color to black
+            # ax[i, j].patch.set_linewidth(1)
             ax[i, j].get_xaxis().set_ticks([])
             ax[i, j].get_yaxis().set_ticks([])
             if i == 0:
-                ax[i, j].set_title(f't - {tau-1-j}', fontsize=10)
-    fig.tight_layout()
+                if tau-1-j == 0:
+                    ax[i, j].set_title(f't', fontsize=8)
+                else:
+                    ax[i, j].set_title(f't - {tau-1-j}', fontsize=8)
+
+    # Adjust the spacing between subplots
+    plt.subplots_adjust(hspace=0.3, wspace=0.1)
+    
     plt.savefig(result_path + f'/strf_selected', dpi=200)
     plt.close()
 
