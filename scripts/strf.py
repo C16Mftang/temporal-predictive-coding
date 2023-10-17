@@ -250,6 +250,7 @@ def main(args):
                                     sparseWr, sparsez, device)
         torch.save(tPC.state_dict(), os.path.join(result_path, f'model.pt'))
         _plot_train_loss(losses, result_path)
+        print(path)
 
         # visualize weights learned
         Wout = tPC.Wout.weight # 
