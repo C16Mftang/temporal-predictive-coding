@@ -171,6 +171,7 @@ class NeuralKalmanFilter(nn.Module):
         seq_len = inputs.shape[1]
 
         # initialize the latent states with 0
+        losses = []
         for i in range(learn_iters):
             self.z = torch.zeros((self.latent_size, 1)).to(inputs.device)
             for l in range(seq_len):
@@ -187,9 +188,13 @@ class NeuralKalmanFilter(nn.Module):
 
                 # update the emission after inference converges
                 self.update_emission(learn_lr)
+
+            loss = torch.sum(self.ex ** 2) + torch.sum(self.ez ** 2)
+            losses.append(to_np(loss))
                 
             if i % 10 == 0:
                 print(f"Learned {i} epochs")
+        return losses
 
 
 class TemporalPC(nn.Module):
