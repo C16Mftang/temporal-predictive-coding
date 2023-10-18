@@ -42,7 +42,7 @@ def get_nat_movie(datapath, train_size, seq_len):
 
         thresh: the threshold determining the dynamical level of the movies
     """
-    d_path = os.path.join(datapath, 'nat_mid_dynamic.npy')
+    d_path = os.path.join(datapath, 'nat_high_dynamic.npy')
     movie = np.load(d_path, mmap_mode='r+')
     full_size = movie.shape[0]
     np.random.seed(48)
