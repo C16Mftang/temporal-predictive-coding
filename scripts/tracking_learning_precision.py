@@ -25,7 +25,7 @@ inf_lr = 1e-2
 learn_iters = 100
 learn_lr = 1e-3
 # remember to check this before sbatch!
-seeds = range(20)
+seeds = range(1)
 precision = args.precision # "identity", "diagonal", "full
 print(f'Precision matrix used for data generation: {precision}')
 
