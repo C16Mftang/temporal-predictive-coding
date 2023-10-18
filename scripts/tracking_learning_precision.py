@@ -20,7 +20,7 @@ learn_iters = 80
 learn_lr = 2e-5
 # remember to check this before sbatch!
 seeds = range(20)
-precision = "diagonal"
+precision = "identity" # "identity", "diagonal", "full
 
 result_path = os.path.join('./results/', f'learning_precision/{precision}')
 if not os.path.exists(result_path):
@@ -42,7 +42,7 @@ for ind, seed in enumerate(seeds):
     g_C = torch.Generator()
     g_C.manual_seed(1)
     C = torch.randn((3, 3), generator=g_C).to(device)
-    print(C)
+    np.savez(result_path + '/real_params', A=to_np(A), C=to_np(C))
 
     # control input matrix B
     B = torch.tensor([0., 0., 1.]).to(device).reshape((3, 1))
