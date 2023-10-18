@@ -8,23 +8,37 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 from src.models import NeuralKalmanFilter, KalmanFilter
 from src.utils import *
+import argparse
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(device)
 
+parser = argparse.ArgumentParser(description='tPC')
+parser.add_argument('--precision', type=str, default='identity', 
+                    choices=["identity", "diagonal", "full"], help='precision matrix used to generate data')
+args = parser.parse_args()
+
 # hyper parameters
 seq_len = 1000
 inf_iters = 20
-inf_lr = 0.05
-learn_iters = 80
-learn_lr = 2e-5
+inf_lr = 1e-2
+learn_iters = 100
+learn_lr = 1e-3
 # remember to check this before sbatch!
 seeds = range(20)
-precision = "identity" # "identity", "diagonal", "full
+precision = args.precision # "identity", "diagonal", "full
+print(f'Precision matrix used for data generation: {precision}')
 
 result_path = os.path.join('./results/', f'learning_precision/{precision}')
 if not os.path.exists(result_path):
     os.makedirs(result_path)
+
+def plot_loss(losses):
+    # plotting loss for tunning; temporary
+    plt.figure()
+    plt.plot(losses, label='train')
+    plt.legend()
+    plt.savefig(result_path + f'/train_losses')
 
 latent_mses = np.zeros((4, len(seeds)))
 obs_mses = np.zeros((4, len(seeds)))
@@ -108,7 +122,8 @@ for ind, seed in enumerate(seeds):
     # learn A C
     print('Learnt A C')
     AC_nkf = NeuralKalmanFilter(init_A, B, init_C, latent_size=3).to(device)
-    AC_nkf.train(xs, us, inf_iters, inf_lr, learn_iters, learn_lr)
+    losses = AC_nkf.train(xs, us, inf_iters, inf_lr, learn_iters, learn_lr)
+    plot_loss(losses)
     zs_AC_nkf, xs_AC_nkf = AC_nkf.predict(xs, us, inf_iters, inf_lr)
 
     # random A C
@@ -139,6 +154,7 @@ print(f'Code finishes, total time: {time.time() - start_time} seconds')
 learned_A = to_np(AC_nkf.Wr)
 learned_C = to_np(AC_nkf.Wout)
 np.savez(result_path + '/params', A=learned_A, C=learned_C)
+np.savez(result_path + '/mses', latent=latent_mses, obs=obs_mses)
 
 # visualize  dynamics
 fig, ax = plt.subplots(1, 2, figsize=(8, 3))
