@@ -78,12 +78,12 @@ for ind, seed in enumerate(seeds):
             # Q = 10 * Q
             R = torch.diag(torch.tensor([1., 0.1, 0.1])).to(device)
     else:
-        Q = to_torch(np.array([[1, 0.3, 0.05],
-                               [0.3, 0.1, 0.05],
-                               [0.05, 0.05, 0.1]]), device)
-        R = to_torch(np.array([[1, 0.3, 0.05],
-                               [0.3, 0.1, 0.05],
-                               [0.05, 0.05, 0.1]]), device)
+        Q = to_torch(np.array([[1, 0.2, 0.05],
+                               [0.2, 0.1, 0.04],
+                               [0.05, 0.04, 0.1]]), device)
+        R = to_torch(np.array([[1, 0.2, 0.05],
+                               [0.2, 0.1, 0.04],
+                               [0.05, 0.04, 0.1]]), device)
     # cholesky decomposition for generation of non-identity covariance
     LQ = torch.linalg.cholesky(Q).to(device)
     LR = torch.linalg.cholesky(R).to(device)
