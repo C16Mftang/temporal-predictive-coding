@@ -23,9 +23,9 @@ seq_len = 1000
 inf_iters = 20
 inf_lr = 5e-2
 learn_iters = 100
-learn_lr = 1e-3
+learn_lr = 5e-5
 # remember to check this before sbatch!
-seeds = range(20)
+seeds = range(10)
 precision = args.precision # "identity", "diagonal", "full
 print(f'Precision matrix used for data generation: {precision}')
 
@@ -74,15 +74,16 @@ for ind, seed in enumerate(seeds):
         R = torch.eye(3).to(device) # Sigma_y
 
         if precision == 'diagonal':
-            Q = torch.diag(torch.tensor([0.5, 1, 1.5]))
-            R = Q
+            Q = torch.diag(torch.tensor([1., 0.1, 0.1])).to(device)
+            # Q = 10 * Q
+            R = torch.diag(torch.tensor([1., 0.1, 0.1])).to(device)
     else:
-        Q = to_torch(np.array([[1, 0.5, 0.4],
-                               [0.5, 1, 0.3],
-                               [0.4, 0.3, 1]]), device)
-        R = to_torch(np.array([[1, 0.5, 0.4],
-                               [0.5, 1, 0.3],
-                               [0.4, 0.3, 1]]), device)
+        Q = to_torch(np.array([[1, 0.3, 0.05],
+                               [0.3, 0.1, 0.05],
+                               [0.05, 0.05, 0.1]]), device)
+        R = to_torch(np.array([[1, 0.3, 0.05],
+                               [0.3, 0.1, 0.05],
+                               [0.05, 0.05, 0.1]]), device)
     # cholesky decomposition for generation of non-identity covariance
     LQ = torch.linalg.cholesky(Q).to(device)
     LR = torch.linalg.cholesky(R).to(device)
