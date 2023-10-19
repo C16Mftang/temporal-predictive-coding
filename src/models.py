@@ -139,31 +139,32 @@ class NeuralKalmanFilter(nn.Module):
         seq_len = inputs.shape[1]
 
         # initialize the latent states with 0
-        self.z = torch.zeros((self.latent_size, 1)).to(inputs.device)
-        for l in range(seq_len):
-            self.x = inputs[:, l:l + 1]
-            self.u = controls[:, l:l + 1]
-            self.prev_z = self.z.clone()
-            z_projs.append(torch.matmul(self.Wr, self.nonlin(self.z)) + torch.matmul(self.Win, self.nonlin(self.u)))
+        with torch.no_grad():
+            self.z = torch.zeros((self.latent_size, 1)).to(inputs.device)
+            for l in range(seq_len):
+                self.x = inputs[:, l:l + 1]
+                self.u = controls[:, l:l + 1]
+                self.prev_z = self.z.clone()
+                z_projs.append(torch.matmul(self.Wr, self.nonlin(self.z)) + torch.matmul(self.Win, self.nonlin(self.u)))
 
-            # perform inference
-            if inf_iters == 0:
-                # equilibrium of PC inference, only applies to linear case
-                temp1 = torch.linalg.inv(torch.eye(self.latent_size) + torch.matmul(self.Wout.t(), self.Wout))
-                temp2 = torch.matmul(self.Wout.t(), self.x) + torch.matmul(self.Wr, self.prev_z) + torch.matmul(
-                    self.Win, self.u)
-                self.z = torch.matmul(temp1, temp2)
-            else:
-                # perform inference iteratively
-                for itr in range(inf_iters):
-                    self.update_nodes(inf_lr)
+                # perform inference
+                if inf_iters == 0:
+                    # equilibrium of PC inference, only applies to linear case
+                    temp1 = torch.linalg.inv(torch.eye(self.latent_size) + torch.matmul(self.Wout.t(), self.Wout))
+                    temp2 = torch.matmul(self.Wout.t(), self.x) + torch.matmul(self.Wr, self.prev_z) + torch.matmul(
+                        self.Win, self.u)
+                    self.z = torch.matmul(temp1, temp2)
+                else:
+                    # perform inference iteratively
+                    for itr in range(inf_iters):
+                        self.update_nodes(inf_lr)
 
-            zs.append(self.z.detach().clone())
+                zs.append(self.z.detach().clone())
 
-        zs = torch.cat(zs, dim=1)
-        z_projs = torch.cat(z_projs, dim=1)
-        # make prediction of the observations by a forward pass
-        pred_xs = torch.matmul(self.Wout, self.nonlin(z_projs))
+            zs = torch.cat(zs, dim=1)
+            z_projs = torch.cat(z_projs, dim=1)
+            # make prediction of the observations by a forward pass
+            pred_xs = torch.matmul(self.Wout, self.nonlin(z_projs))
         return zs, pred_xs
 
     def train(self, inputs, controls, inf_iters, inf_lr, learn_iters=1, learn_lr=2e-4):
