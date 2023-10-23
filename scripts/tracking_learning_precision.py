@@ -74,14 +74,14 @@ for ind, seed in enumerate(seeds):
         R = torch.eye(3).to(device) # Sigma_y
 
         if precision == 'diagonal':
-            Q = torch.diag(torch.tensor([1., 0.1, 0.1])).to(device)
+            Q = torch.diag(torch.tensor([10., 1., 1.])).to(device)
             # Q = 10 * Q
-            R = torch.diag(torch.tensor([1., 0.1, 0.1])).to(device)
+            R = torch.diag(torch.tensor([10., 1., 1.])).to(device)
     else:
-        Q = to_torch(np.array([[1, 0.2, 0.05],
+        Q = 10 * to_torch(np.array([[1, 0.2, 0.05],
                                [0.2, 0.1, 0.04],
                                [0.05, 0.04, 0.1]]), device)
-        R = to_torch(np.array([[1, 0.2, 0.05],
+        R = 10 * to_torch(np.array([[1, 0.2, 0.05],
                                [0.2, 0.1, 0.04],
                                [0.05, 0.04, 0.1]]), device)
     # cholesky decomposition for generation of non-identity covariance
