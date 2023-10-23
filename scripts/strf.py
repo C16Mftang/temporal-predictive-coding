@@ -73,7 +73,8 @@ parser.add_argument('--unit-id', type=int, default=[], nargs='+',
                     help='selected unit ids to plot strf')
 parser.add_argument('--diff-nonlin', type=str, default='False', choices=['False', 'True'],
                     help='whether to use different nonlinearities for recurrent and forward process')     
-
+parser.add_argument('--rot-nat', type=str, default='False', choices=['False', 'True'],
+                    help='whether to rotate the natural movies to create opposite directions of motion')
 args = parser.parse_args()
 
 def _plot_train_loss(losses, result_path):
@@ -239,7 +240,7 @@ def main(args):
         elif datapath == 'bar_patches_simple':
             train = get_bar_patches(train_size, seq_len, h, w, simple=True).astype(np.float16)
         else:
-            train = get_nat_movie(datapath, train_size, seq_len).reshape((-1, seq_len, h, w))
+            train = get_nat_movie(datapath, train_size, seq_len, args.rot_nat).reshape((-1, seq_len, h, w))
         
         # whiten the data
         if not args.whitening:
