@@ -247,7 +247,7 @@ def main(args):
             train = spatiotemporal_whitening(train, args.whitening)[0].reshape((-1, seq_len, h, w)).astype(np.float16)
 
         # make training data a dataloader
-        train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
+        train_loader = torch.utils.data.DataLoader(train.copy(), batch_size=batch_size, shuffle=True)
 
         # train model                                
         losses = train_batched_input(tPC, optimizer, scheduler, train_loader, 
