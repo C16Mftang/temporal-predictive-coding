@@ -58,8 +58,8 @@ def get_nat_movie(datapath, train_size, seq_len, rotate=False):
             train_r = np.flip(train, axis=2)
             train = np.concatenate((train, train_r), axis=0)
             # select randomly a subset of train_size as the original dataset is quadrapled.
-            # selected_r = np.random.choice(train.shape[0], train_size * 2)
-            # train = train[selected_r]
+            selected_r = np.random.choice(train.shape[0], train_size * 2)
+            train = train[selected_r]
     print(train.shape)
     
     return train
