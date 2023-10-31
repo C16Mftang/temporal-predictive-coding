@@ -31,7 +31,7 @@ class DataWrapper(Dataset):
     def __getitem__(self, idx):
         return self.features[idx], []
 
-def get_nat_movie(datapath, train_size, seq_len, rotate=False):
+def get_nat_movie(datapath, train_size, seq_len, flip=False):
     """
     Function to load Seb's natural movie data
 
@@ -54,8 +54,11 @@ def get_nat_movie(datapath, train_size, seq_len, rotate=False):
         print('Train size changed, now 2 * train_size')
 
         # augment the dataset with motions towards the opposite direction
-        if rotate:
-            train_r = np.flip(train, axis=2)
+        if flip:
+            h = int(np.sqrt(movie.shape[2]))
+            w = h
+            # horizontal flip
+            train_r = train.reshape(-1, seq_len, h, w)[:, :, :, ::-1].reshape(-1, seq_len, h*w)
             train = np.concatenate((train, train_r), axis=0)
             # select randomly a subset of train_size as the original dataset is quadrapled.
             selected_r = np.random.choice(train.shape[0], train_size * 2)

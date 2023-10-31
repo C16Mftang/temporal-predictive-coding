@@ -17,8 +17,8 @@
 --lr-decay-rate=0.8
 --hw=16
 --seq-len=20
---nonlin=tanh
+--nonlin=linear
 --diff-nonlin=False
 --tau=5
 --whitening=None
---rot-nat=True
+--flip-nat=True
