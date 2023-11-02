@@ -115,12 +115,12 @@ for ind, seed in enumerate(seeds):
     g_C.manual_seed(2) # dont' use seed=10 here! It will generate the real C
     init_C = torch.randn((3, 3), generator=g_C).to(device)
 
-    # true A C
+    # true A C, assuming we know the noise covariances
     print('True A C')
-    nkf = NeuralKalmanFilter(A, B, C, latent_size=3).to(device)
+    nkf = NeuralKalmanFilter(A, B, C, latent_size=3, Sz=Q, Sx=R).to(device)
     zs_nkf, xs_nkf = nkf.predict(xs, us, inf_iters, inf_lr)
     
-    # learn A C
+    # learn A C, assuming we don't know the noise covariances
     print('Learnt A C')
     AC_nkf = NeuralKalmanFilter(init_A, B, init_C, latent_size=3).to(device)
     losses = AC_nkf.train(xs, us, inf_iters, inf_lr, learn_iters, learn_lr)

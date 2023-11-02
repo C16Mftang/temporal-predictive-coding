@@ -73,12 +73,19 @@ class NeuralKalmanFilter(nn.Module):
     A, B, C: initial value of weight parameters. In the case of not learning, they are the correct values
     """
 
-    def __init__(self, A, B, C, latent_size, dynamic_inf=False, nonlin='linear') -> None:
+    def __init__(self, A, B, C, latent_size, dynamic_inf=False, nonlin='linear', Sz=None, Sx=None) -> None:
         super().__init__()
         self.Wr = A.clone()
         self.Win = B.clone()
         self.Wout = C.clone()
 
+        if Sz is None and Sx is None:
+            self.Sz = torch.eye(A.shape[0])
+            self.Sx = torch.eye(C.shape[0])
+        else:
+            self.Sz = Sz.clone()
+            self.Sx = Sx.clone()
+        
         # control input, a list/1d array
         self.latent_size = latent_size
         self.dynamic_inf = dynamic_inf
@@ -104,16 +111,17 @@ class NeuralKalmanFilter(nn.Module):
                 # if we use dynamic inference, the prediction is from the previous *internal* inference step
                 self.ez = self.z - torch.matmul(self.Wr, self.nonlin(self.z)) - torch.matmul(self.Win,
                                                                                              self.nonlin(self.u))
+                self.ez = torch.matmul(torch.linalg.inv(self.Sz), self.ez)
             else:
                 # or esle, the prediction is from the previous *external* time step
                 self.ez = self.z - torch.matmul(self.Wr, self.nonlin(self.prev_z)) - torch.matmul(self.Win,
                                                                                                   self.nonlin(self.u))
+                self.ez = torch.matmul(torch.linalg.inv(self.Sz), self.ez)
 
             # we also need to consider precision here, but for now let's stick with precision=I
             self.pred_x = torch.matmul(self.Wout, self.nonlin(self.z))
-            self.ex = self.x - self.pred_x
-            delta_z = self.ez - self.nonlin.deriv(self.z) * torch.matmul(self.Wout.t(), self.ex) + 0.0 * torch.sign(
-                self.z)
+            self.ex = torch.matmul(torch.linalg.inv(self.Sx), self.x - self.pred_x)
+            delta_z = self.ez - self.nonlin.deriv(self.z) * torch.matmul(self.Wout.t(), self.ex)
             self.z -= inf_lr * delta_z
 
     def update_transition(self, learn_lr):
