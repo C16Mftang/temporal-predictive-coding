@@ -1,5 +1,5 @@
 # Predictive Coding Networks for Temporal Prediction
-
+![tPC](./results/paper_tpc.png)
 Repository for experiments with the temporal predictive coding model
 
 ## 1. Description
