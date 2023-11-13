@@ -9,7 +9,7 @@ plt.style.use('ggplot')
 from src.models import NeuralKalmanFilter, KalmanFilter
 from src.utils import *
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cpu"
 print(device)
 
 result_path = os.path.join('./results/', 'learning_comparisons')
@@ -119,29 +119,30 @@ for ind, seed in enumerate(seeds):
 print(f'Code finishes, total time: {time.time() - start_time} seconds')
 
 # visualize latent dynamics
+dim = 2
 fig, ax = plt.subplots(1, 2, figsize=(8, 3))
 lw = 0.8
 # latent
-ax[0].plot(to_np(zs_kf[0]), label='Kalman Filter', lw=2.5*lw)
-ax[0].plot(to_np(zs_nkf[0]), label='True', lw=1.2*lw)
-ax[0].plot(to_np(zs_AC_nkf[0]), label='Learnt', lw=lw, c='#BDE038')
-ax[0].plot(to_np(zs_rAC_nkf[0]), label='Random', lw=lw, c='#708A83')
-ax[0].plot(to_np(zs[0]), label='True Value', c='k', ls='--', lw=lw)
+ax[0].plot(to_np(zs_kf[dim]), label='Kalman Filter', lw=2.5*lw)
+ax[0].plot(to_np(zs_nkf[dim]), label='True', lw=1.2*lw)
+ax[0].plot(to_np(zs_AC_nkf[dim]), label='Learnt', lw=lw, c='#BDE038')
+ax[0].plot(to_np(zs_rAC_nkf[dim]), label='Random', lw=lw, c='#708A83')
+ax[0].plot(to_np(zs[dim]), label='True Value', c='k', ls='--', lw=lw)
 ax[0].set_title('State', fontsize=12)
 ax[0].legend(prop={'size': 7})
 ax[0].set_xlabel('Time')
-ax[0].set_ylabel(r'$x_1$')
+ax[0].set_ylabel(r'$x_3$')
 # observed
-ax[1].plot(to_np(xs_kf[0]), label='Kalman Filter', lw=2.5*lw)
-ax[1].plot(to_np(xs_nkf[0]), label='True', lw=1.2*lw)
-ax[1].plot(to_np(xs_AC_nkf[0]), label='Learnt', lw=lw, c='#BDE038')
-ax[1].plot(to_np(xs_rAC_nkf[0]), label='Random', lw=lw, c='#708A83')
-ax[1].plot(to_np(xs[0]), label='True Value', c='k', ls='--', lw=lw)
+ax[1].plot(to_np(xs_kf[dim]), label='Kalman Filter', lw=2.5*lw)
+ax[1].plot(to_np(xs_nkf[dim]), label='True', lw=1.2*lw)
+ax[1].plot(to_np(xs_AC_nkf[dim]), label='Learnt', lw=lw, c='#BDE038')
+ax[1].plot(to_np(xs_rAC_nkf[dim]), label='Random', lw=lw, c='#708A83')
+ax[1].plot(to_np(xs[dim]), label='True Value', c='k', ls='--', lw=lw)
 ax[1].set_title('Observed', fontsize=12)
 ax[1].set_xlabel('Time')
-ax[1].set_ylabel(r'$y_1$')
+ax[1].set_ylabel(r'$y_3$')
 plt.tight_layout()
-plt.savefig(result_path + f'/learning_AC_inf{inf_iters}_learn{learn_iters}.pdf')
+plt.savefig(result_path + f'/learning_AC_inf{inf_iters}_learn{learn_iters}_{dim}.pdf')
 
 # visualize the errors on the latent level
 fig, ax = plt.subplots(1, 2, figsize=(8, 3), sharey=True)
