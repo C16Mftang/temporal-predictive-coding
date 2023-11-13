@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 # import opinionated
 import matplotlib.pyplot as plt
-plt.style.use('ggplot')
+plt.style.use('default')
 from src.models import TemporalPC, MultilayertPC
 from src.utils import *
 from src.get_data import get_nat_movie, get_moving_blobs, get_moving_bars, get_bar_patches
@@ -147,9 +147,9 @@ def _plot_selected_strf(all_strfs, tau, result_path, hidden_size, selected_ids):
                     ax[i, j].set_title(f't - {tau-1-j}', fontsize=8)
 
     # Adjust the spacing between subplots
-    plt.subplots_adjust(hspace=0.3, wspace=0.1)
+    plt.subplots_adjust(hspace=0.2, wspace=0.1)
     
-    plt.savefig(result_path + f'/strf_selected', dpi=200)
+    plt.savefig(result_path + f'/strf_selected.pdf', bbox_inches='tight')
     plt.close()
 
 
