@@ -9,7 +9,7 @@ from src.models import NeuralKalmanFilter, KalmanFilter
 from src.utils import *
 
 plt.style.use('ggplot')
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cpu"
 print(device)
 
 # hyper parameters
@@ -99,6 +99,8 @@ zs_nkf1 = to_np(zs_nkf1)
 zs_nkf0 = to_np(zs_nkf0)
 zs_kf = to_np(zs_kf)
 
+np.savez(result_path + '/latent_states', zs=zs, zs_nkf=zs_nkf, zs_nkf1=zs_nkf1, zs_nkf0=zs_nkf0, zs_kf=zs_kf)
+
 # fig, ax = plt.subplots(1, 3, figsize=(10, 3))
 lw = 1
 # ax[0].plot(zs_kf[0, 500:600], label='Kalman Filter')
@@ -117,24 +119,24 @@ lw = 1
 # ax[1].plot(zs[1, 500:600], c='k', ls='--')
 # ax[1].set_xticks(np.arange(0, 120, 20), np.arange(500, 620, 20))
 # ax[1].set_title('Velocity')
+if False:
+    plt.figure(figsize=(6, 2))
+    plt.plot(zs[2, 570:591], c='k', label='True')
+    plt.plot(zs_kf[2, 570:591], label='Kalman Filter')
+    # plt.plot(zs_nkf1[2, 570:591], c='#13678A', label='tPC (1 step)')
+    plt.plot(zs_nkf[2, 570:591], c='#45C4B0', label='tPC')
+    # plt.plot(zs_nkf0[2, 560:600], c='#9AEBA3', label='PC Equilibrium', ls=':')
 
-plt.figure(figsize=(6, 2))
-plt.plot(zs[2, 570:591], c='k', label='True')
-plt.plot(zs_kf[2, 570:591], label='Kalman Filter')
-# plt.plot(zs_nkf1[2, 570:591], c='#13678A', label='tPC (1 step)')
-plt.plot(zs_nkf[2, 570:591], c='#45C4B0', label='tPC')
-# plt.plot(zs_nkf0[2, 560:600], c='#9AEBA3', label='PC Equilibrium', ls=':')
-
-plt.xticks(np.arange(0, 30, 10), np.arange(570, 600, 10), color='k')
-plt.yticks([98, 100], color='k')
-plt.title('Estimated Acceleration')
-plt.xlabel('Time', color='k')
-plt.ylabel('Value', color='k')
-plt.legend(prop={'size': 9}, ncol=2)
-# fig.supxlabel('Timestep')
-# fig.supylabel('Value')
-plt.tight_layout()
-plt.savefig(result_path + '/gradient_steps_acc_ccn', dpi=500)
+    plt.xticks(np.arange(0, 30, 10), np.arange(570, 600, 10), color='k')
+    plt.yticks([98, 100], color='k')
+    plt.title('Estimated Acceleration')
+    plt.xlabel('Time', color='k')
+    plt.ylabel('Value', color='k')
+    plt.legend(prop={'size': 9}, ncol=2)
+    # fig.supxlabel('Timestep')
+    # fig.supylabel('Value')
+    plt.tight_layout()
+    plt.savefig(result_path + '/gradient_steps_acc_ccn', dpi=500)
 
 # compare online inference:
 if False:
