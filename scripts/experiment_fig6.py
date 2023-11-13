@@ -51,7 +51,7 @@ def simulate(integration_step, et):
 if __name__ == '__main__':
     step = dt = 0.1
     et = 2500.4  # end time (s)
-    n_simulations = 100
+    n_simulations = 10
     nonlinear_errors = []
     linear_errors = []
 
@@ -105,7 +105,7 @@ if __name__ == '__main__':
     l_error_se = np.std(linear_errors, axis=0, ddof=1) / np.sqrt(np.size(linear_errors, axis=0))
 
     labels = ["Linear", "Nonlinear"]
-    plt.figure(figsize=(6, 6))
+    plt.figure(figsize=(5, 5))
     barlist = plt.bar(labels, [l_error_mean, nl_error_mean], 0.5,
                       yerr=[l_error_se, nl_error_se],
                       error_kw=dict(lw=5, capsize=5, capthick=3))
@@ -115,8 +115,8 @@ if __name__ == '__main__':
     plt.title('Average mean-squared prediction errors', fontsize=17)
     plt.ylabel('Average MSE', color='k', fontsize=18)
     plt.legend(prop={'size': 9}, ncol=1)
-    plt.tight_layout()
-    plt.savefig(results_path / 'pendulum_barplot.pdf')
+    # plt.tight_layout()
+    plt.savefig(results_path / 'pendulum_barplot.pdf', bbox_inches='tight')
     plt.show()
 
     fn = 80
@@ -129,7 +129,7 @@ if __name__ == '__main__':
     theta_init = [theta1_init, theta2_init]
     t_span = [st, et + st]
     U, V = pendulum_equation(t_span, [X, Y])
-    plt.figure(figsize=(6, 6))
+    plt.figure(figsize=(5, 5))
     plt.quiver(X, Y, U, V, color='purple')
     plt.plot(sol[1, ff:], sol[0, ff:], 'k-', linewidth=3, label='True')
     plt.plot(data_pred_nl[0, ff:], data_pred_nl[1, ff:], linewidth=3, label='Nonlinear model')
@@ -141,7 +141,7 @@ if __name__ == '__main__':
     plt.title('Mean phase portrait', fontsize=20)
     plt.xlabel(r'$\theta_1$', fontsize=18, color='k')
     plt.ylabel(r'$\theta_2$', fontsize=18, color='k')
-    plt.legend(prop={'size': 9}, ncol=1)
-    plt.tight_layout()
-    plt.savefig(results_path / 'phase_portrait.pdf')
+    plt.legend(prop={'size': 15}, ncol=1)
+    # plt.tight_layout()
+    plt.savefig(results_path / 'phase_portrait.pdf', bbox_inches='tight')
     plt.show()
