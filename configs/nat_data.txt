@@ -6,10 +6,10 @@
 --hidden-size=320
 --learn-lr=0.005
 --learn-iters=300
---inf-lr=5e-2
---inf-iters=50
---inf-lr-test=2e-2
---inf-iters-test=200
+--inf-lr=1e-1
+--inf-iters=33
+--inf-lr-test=1e-2
+--inf-iters-test=330
 --sparseWout=1.25
 --sparseWr=0
 --sparsez=0.5
