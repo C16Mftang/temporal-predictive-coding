@@ -33,9 +33,13 @@ For Figure 4 enter:
 
 For Figure 5 enter:
 
-`python scripts/experiment_fig5.py`
+`python scripts/tracking_learning_precision.py`
 
 For Figure 6 enter:
+
+`python scripts/strf.py`
+
+For Figure 7 enter:
 
 `python scripts/experiment_fig6.py`
 
