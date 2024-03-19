@@ -35,7 +35,7 @@ For Figure 5 enter:
 
 `python scripts/tracking_learning_precision.py`
 
-For Figure 6 enter:
+For Figure 6 enter (the patches of natural movie data are stored in `nat_data`, you should run this script with argument `datapath='natdata'`):
 
 `python scripts/strf.py`
 
