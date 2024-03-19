@@ -142,9 +142,9 @@ def _plot_selected_strf(all_strfs, tau, result_path, hidden_size, selected_ids):
             ax[i, j].get_yaxis().set_ticks([])
             if i == 0:
                 if tau-1-j == 0:
-                    ax[i, j].set_title(f't', fontsize=8)
+                    ax[i, j].set_title(f'k', fontsize=8)
                 else:
-                    ax[i, j].set_title(f't - {tau-1-j}', fontsize=8)
+                    ax[i, j].set_title(f'k - {tau-1-j}', fontsize=8)
 
     # Adjust the spacing between subplots
     plt.subplots_adjust(hspace=0.2, wspace=0.1)
